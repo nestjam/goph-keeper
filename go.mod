@@ -15,6 +15,8 @@ require (
 
 require (
 	github.com/go-chi/chi v1.5.5
+	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.9.0
+	golang.org/x/crypto v0.22.0
 	golang.org/x/net v0.22.0 // indirect
 )

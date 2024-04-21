@@ -2,11 +2,14 @@ package server_test
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	httpAuth "github.com/nestjam/goph-keeper/internal/auth/delivery/http"
 	"github.com/nestjam/goph-keeper/internal/server"
 )
 
@@ -18,12 +21,21 @@ func TestRun(t *testing.T) {
 	sut := server.New(baseURL)
 
 	go func() {
-		_ = sut.Run(ctx)
+		err := sut.Run(ctx)
+		if err != nil {
+			panic(err)
+		}
 	}()
 
 	c := resty.New()
 	c.BaseURL = "http://" + baseURL
-	_, err := c.R().Post("/register")
+	r := c.R()
+	r.Body = httpAuth.RegisterUserRequest{
+		Email:    "user@email.com",
+		Password: "1234",
+	}
+	resp, err := r.Post("/register")
 
 	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, resp.StatusCode())
 }
