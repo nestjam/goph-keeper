@@ -8,7 +8,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/go-chi/jwtauth/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -18,6 +20,10 @@ import (
 )
 
 func TestRegister(t *testing.T) {
+	config := JWTAuthConfig{
+		SignKey:       "secret",
+		TokenExpiryIn: time.Minute,
+	}
 	t.Run("regiser new user", func(t *testing.T) {
 		const (
 			email    = "user@email.com"
@@ -25,7 +31,7 @@ func TestRegister(t *testing.T) {
 		)
 		repo := inmemory.NewUserRepository()
 		service := service.NewAuthService(repo)
-		sut := NewAuthHandlers(service)
+		sut := NewAuthHandlers(service, config)
 		r := newRegisterUserRequest(t, email, password)
 		w := httptest.NewRecorder()
 
@@ -35,10 +41,44 @@ func TestRegister(t *testing.T) {
 		_, err := repo.FindByEmail(email)
 		require.NoError(t, err)
 	})
+	t.Run("add jwt cookie on success registration", func(t *testing.T) {
+		const (
+			email    = "user@email.com"
+			password = "1234"
+		)
+		repo := inmemory.NewUserRepository()
+		service := service.NewAuthService(repo)
+		sut := NewAuthHandlers(service, config)
+		r := newRegisterUserRequest(t, email, password)
+		w := httptest.NewRecorder()
+
+		sut.Register().ServeHTTP(w, r)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+		user, err := repo.FindByEmail(email)
+		require.NoError(t, err)
+
+		res := w.Result()
+		defer func() { _ = res.Body.Close() }()
+		cookies := res.Cookies()
+		assert.NotEmpty(t, cookies)
+		jwtCookie := cookies[0]
+		assert.Equal(t, jwtCookieName, jwtCookie.Name)
+		wantMaxAge := int(config.TokenExpiryIn / time.Second)
+		assert.Equal(t, wantMaxAge, jwtCookie.MaxAge)
+		assert.Equal(t, true, jwtCookie.HttpOnly)
+
+		jwtAuth := jwtauth.New(jwtAlg, []byte(config.SignKey), nil)
+		token, err := jwtAuth.Decode(jwtCookie.Value)
+		require.NoError(t, err)
+		id, ok := token.Get(userIDClaim)
+		require.True(t, ok)
+		assert.Equal(t, user.ID.String(), id.(string))
+	})
 	t.Run("json is invalid", func(t *testing.T) {
 		repo := inmemory.NewUserRepository()
 		service := service.NewAuthService(repo)
-		sut := NewAuthHandlers(service)
+		sut := NewAuthHandlers(service, config)
 		r := newRegisterUserInvalidRequest(t)
 		w := httptest.NewRecorder()
 
@@ -55,7 +95,7 @@ func TestRegister(t *testing.T) {
 		service.RegisterFunc = func(user *model.User) (*model.User, error) {
 			return nil, errors.New("failed to register")
 		}
-		sut := NewAuthHandlers(service)
+		sut := NewAuthHandlers(service, config)
 		r := newRegisterUserRequest(t, email, password)
 		w := httptest.NewRecorder()
 

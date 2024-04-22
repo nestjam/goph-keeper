@@ -4,11 +4,25 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"time"
+
+	"github.com/go-chi/jwtauth/v5"
+	"github.com/pkg/errors"
 
 	"github.com/nestjam/goph-keeper/internal/auth"
 	"github.com/nestjam/goph-keeper/internal/auth/model"
-	"github.com/pkg/errors"
 )
+
+const (
+	jwtCookieName = "jwt"
+	userIDClaim   = "user_id"
+	jwtAlg        = "HS256"
+)
+
+type JWTAuthConfig struct {
+	SignKey       string
+	TokenExpiryIn time.Duration
+}
 
 type RegisterUserRequest struct {
 	Email    string `json:"email"`
@@ -16,12 +30,14 @@ type RegisterUserRequest struct {
 }
 
 type AuthHandlers struct {
-	service auth.AuthService
+	service    auth.AuthService
+	authConfig JWTAuthConfig
 }
 
-func NewAuthHandlers(service auth.AuthService) *AuthHandlers {
+func NewAuthHandlers(service auth.AuthService, authConfig JWTAuthConfig) *AuthHandlers {
 	return &AuthHandlers{
-		service: service,
+		service:    service,
+		authConfig: authConfig,
 	}
 }
 
@@ -33,7 +49,13 @@ func (h *AuthHandlers) Register() http.HandlerFunc {
 			return
 		}
 
-		_, err = h.service.Register(user)
+		createdUser, err := h.service.Register(user)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err = h.setAuthCookie(w, createdUser)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -41,6 +63,28 @@ func (h *AuthHandlers) Register() http.HandlerFunc {
 
 		w.WriteHeader(http.StatusCreated)
 	})
+}
+
+func (h *AuthHandlers) setAuthCookie(w http.ResponseWriter, user *model.User) error {
+	const op = "set auth cookie"
+
+	jwtAuth := jwtauth.New("HS256", []byte(h.authConfig.SignKey), nil)
+	claims := make(map[string]interface{})
+	claims[userIDClaim] = user.ID.String()
+	jwtauth.SetExpiryIn(claims, h.authConfig.TokenExpiryIn)
+
+	_, token, err := jwtAuth.Encode(claims)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     jwtCookieName,
+		Value:    token,
+		MaxAge:   int(h.authConfig.TokenExpiryIn / time.Second),
+		HttpOnly: true,
+	})
+	return nil
 }
 
 func getUser(r io.Reader) (*model.User, error) {
