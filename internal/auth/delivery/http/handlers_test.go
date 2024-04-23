@@ -33,7 +33,7 @@ func TestRegister(t *testing.T) {
 		repo := inmemory.NewUserRepository()
 		service := service.NewAuthService(repo)
 		sut := NewAuthHandlers(service, config)
-		r := newRegisterUserRequest(t, email, password)
+		r := newRegisterUserRequest(t, "/", email, password)
 		w := httptest.NewRecorder()
 
 		sut.Register().ServeHTTP(w, r)
@@ -51,7 +51,7 @@ func TestRegister(t *testing.T) {
 		repo := inmemory.NewUserRepository()
 		service := service.NewAuthService(repo)
 		sut := NewAuthHandlers(service, config)
-		r := newRegisterUserRequest(t, email, password)
+		r := newRegisterUserRequest(t, "/", email, password)
 		w := httptest.NewRecorder()
 
 		sut.Register().ServeHTTP(w, r)
@@ -99,7 +99,7 @@ func TestRegister(t *testing.T) {
 			return nil, errors.New("failed to register")
 		}
 		sut := NewAuthHandlers(service, config)
-		r := newRegisterUserRequest(t, email, password)
+		r := newRegisterUserRequest(t, "/", email, password)
 		w := httptest.NewRecorder()
 
 		sut.Register().ServeHTTP(w, r)
@@ -114,14 +114,16 @@ func newRegisterUserInvalidRequest(t *testing.T) *http.Request {
 	return httptest.NewRequest(http.MethodPost, "/", strings.NewReader("{{invalid}"))
 }
 
-func newRegisterUserRequest(t *testing.T, email, password string) *http.Request {
+func newRegisterUserRequest(t *testing.T, path, email, password string) *http.Request {
 	t.Helper()
 
-	r := RegisterUserRequest{
+	data := RegisterUserRequest{
 		Email:    email,
 		Password: password,
 	}
-	body, err := json.Marshal(r)
+	body, err := json.Marshal(data)
 	require.NoError(t, err)
-	return httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+	r := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(body))
+	r.Header.Set(contentTypeHeader, applicationJSON)
+	return r
 }
