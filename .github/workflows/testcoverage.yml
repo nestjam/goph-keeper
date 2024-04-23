@@ -15,8 +15,8 @@ jobs:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
       - name: Run coverage
@@ -25,14 +25,15 @@ jobs:
           go test -v -coverprofile coverage.out ./...
           go tool cover -html coverage.out -o coverage.html
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          slug: nestjam/goph-keeper
           files: ./coverage.out
           flags: unittests
           name: codecov-umbrella
       - name: Archive code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
           path: coverage.html
