@@ -1,9 +1,12 @@
 package service
 
 import (
+	"context"
+
+	"github.com/pkg/errors"
+
 	"github.com/nestjam/goph-keeper/internal/auth"
 	"github.com/nestjam/goph-keeper/internal/auth/model"
-	"github.com/pkg/errors"
 )
 
 type authService struct {
@@ -14,7 +17,7 @@ func NewAuthService(repo auth.UserRepository) auth.AuthService {
 	return &authService{repo: repo}
 }
 
-func (s *authService) Register(user *model.User) (*model.User, error) {
+func (s *authService) Register(ctx context.Context, user *model.User) (*model.User, error) {
 	const op = "register user"
 
 	user = user.Copy()
@@ -23,7 +26,7 @@ func (s *authService) Register(user *model.User) (*model.User, error) {
 		return nil, errors.Wrap(err, op)
 	}
 
-	createdUser, err := s.repo.Register(user)
+	createdUser, err := s.repo.Register(ctx, user)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}

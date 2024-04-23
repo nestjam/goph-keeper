@@ -1,6 +1,7 @@
 package inmemory
 
 import (
+	"context"
 	"sync"
 
 	"github.com/google/uuid"
@@ -22,7 +23,7 @@ func NewUserRepository() auth.UserRepository {
 	}
 }
 
-func (r *userRepository) Register(user *model.User) (*model.User, error) {
+func (r *userRepository) Register(ctx context.Context, user *model.User) (*model.User, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -50,11 +51,11 @@ func generateID(ids map[uuid.UUID]struct{}) uuid.UUID {
 	}
 }
 
-func (r *userRepository) GetByID(id uuid.UUID) (*model.User, error) {
+func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	panic("unimplemented")
 }
 
-func (r *userRepository) FindByEmail(email string) (*model.User, error) {
+func (r *userRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

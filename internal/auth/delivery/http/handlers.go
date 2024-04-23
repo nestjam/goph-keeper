@@ -49,7 +49,8 @@ func (h *AuthHandlers) Register() http.HandlerFunc {
 			return
 		}
 
-		createdUser, err := h.service.Register(user)
+		ctx := r.Context()
+		createdUser, err := h.service.Register(ctx, user)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

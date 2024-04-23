@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 
 	"github.com/google/uuid"
@@ -13,7 +14,7 @@ var (
 )
 
 type UserRepository interface {
-	Register(user *model.User) (*model.User, error)
-	GetByID(id uuid.UUID) (*model.User, error)
-	FindByEmail(email string) (*model.User, error)
+	Register(ctx context.Context, user *model.User) (*model.User, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*model.User, error)
+	FindByEmail(ctx context.Context, email string) (*model.User, error)
 }

@@ -1,11 +1,15 @@
 package service
 
-import "github.com/nestjam/goph-keeper/internal/auth/model"
+import (
+	"context"
+
+	"github.com/nestjam/goph-keeper/internal/auth/model"
+)
 
 type AuthServiceMock struct {
-	RegisterFunc func(user *model.User) (*model.User, error)
+	RegisterFunc func(ctx context.Context, user *model.User) (*model.User, error)
 }
 
-func (s *AuthServiceMock) Register(user *model.User) (*model.User, error) {
-	return s.RegisterFunc(user)
+func (s *AuthServiceMock) Register(ctx context.Context, user *model.User) (*model.User, error) {
+	return s.RegisterFunc(ctx, user)
 }

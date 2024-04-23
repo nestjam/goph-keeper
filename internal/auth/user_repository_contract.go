@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -18,12 +19,13 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 		t.Run("register new user", func(t *testing.T) {
 			sut, tearDown := c.NewUserRepository()
 			t.Cleanup(tearDown)
-
 			user := &model.User{
 				Email:    "user@email.com",
 				Password: "123",
 			}
-			got, err := sut.Register(user)
+			ctx := context.Background()
+
+			got, err := sut.Register(ctx, user)
 
 			require.NoError(t, err)
 			assert.Equal(t, user.Email, got.Email)
@@ -37,10 +39,12 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 				Email:    "user@email.com",
 				Password: "123",
 			}
-			_, err := sut.Register(user)
+			ctx := context.Background()
+
+			_, err := sut.Register(ctx, user)
 			require.NoError(t, err)
 
-			_, err = sut.Register(user)
+			_, err = sut.Register(ctx, user)
 			require.ErrorIs(t, err, ErrUserWithEmailIsRegistered)
 		})
 	})
@@ -52,10 +56,11 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 			user := &model.User{
 				Email: "user@email.com",
 			}
-			want, err := sut.Register(user)
+			ctx := context.Background()
+			want, err := sut.Register(ctx, user)
 			require.NoError(t, err)
 
-			got, err := sut.FindByEmail(user.Email)
+			got, err := sut.FindByEmail(ctx, user.Email)
 			require.NoError(t, err)
 			assert.Equal(t, want.ID, got.ID)
 			assert.Equal(t, user.Email, got.Email)
@@ -66,8 +71,9 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 			user := &model.User{
 				Email: "user@email.com",
 			}
+			ctx := context.Background()
 
-			_, err := sut.FindByEmail(user.Email)
+			_, err := sut.FindByEmail(ctx, user.Email)
 			require.ErrorIs(t, err, ErrUserIsNotRegisteredAtEmail)
 		})
 	})

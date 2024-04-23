@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -38,7 +39,8 @@ func TestRegister(t *testing.T) {
 		sut.Register().ServeHTTP(w, r)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
-		_, err := repo.FindByEmail(email)
+		ctx := context.Background()
+		_, err := repo.FindByEmail(ctx, email)
 		require.NoError(t, err)
 	})
 	t.Run("add jwt cookie on success registration", func(t *testing.T) {
@@ -55,7 +57,8 @@ func TestRegister(t *testing.T) {
 		sut.Register().ServeHTTP(w, r)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
-		user, err := repo.FindByEmail(email)
+		ctx := context.Background()
+		user, err := repo.FindByEmail(ctx, email)
 		require.NoError(t, err)
 
 		res := w.Result()
@@ -92,7 +95,7 @@ func TestRegister(t *testing.T) {
 			password = "1234"
 		)
 		service := &service.AuthServiceMock{}
-		service.RegisterFunc = func(user *model.User) (*model.User, error) {
+		service.RegisterFunc = func(ctx context.Context, user *model.User) (*model.User, error) {
 			return nil, errors.New("failed to register")
 		}
 		sut := NewAuthHandlers(service, config)

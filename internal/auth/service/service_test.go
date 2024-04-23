@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -22,14 +23,15 @@ func TestRegister(t *testing.T) {
 		repo := inmemory.NewUserRepository()
 		sut := NewAuthService(repo)
 		user := &model.User{Email: email, Password: password}
+		ctx := context.Background()
 
-		got, err := sut.Register(user)
+		got, err := sut.Register(ctx, user)
 
 		assert.Equal(t, user.Email, got.Email)
 		require.NoError(t, err)
 		assertEqualPasswords(t, user.Password, got.Password)
 
-		foundUser, err := repo.FindByEmail(email)
+		foundUser, err := repo.FindByEmail(ctx, email)
 		require.NoError(t, err)
 		assert.Equal(t, user.Email, foundUser.Email)
 		assert.Equal(t, foundUser.Email, got.Email)
@@ -42,8 +44,9 @@ func TestRegister(t *testing.T) {
 			Email:    email,
 			Password: strings.Repeat("0", model.PasswordMaxLengthInBytes+1),
 		}
+		ctx := context.Background()
 
-		_, err := sut.Register(user)
+		_, err := sut.Register(ctx, user)
 
 		require.ErrorIs(t, err, bcrypt.ErrPasswordTooLong)
 	})
@@ -53,11 +56,12 @@ func TestRegister(t *testing.T) {
 			password = "1234"
 		)
 		repo := inmemory.NewUserRepository()
-		_, _ = repo.Register(&model.User{Email: email, Password: "psw"})
+		ctx := context.Background()
+		_, _ = repo.Register(ctx, &model.User{Email: email, Password: "psw"})
 		sut := NewAuthService(repo)
 		user := &model.User{Email: email, Password: password}
 
-		_, err := sut.Register(user)
+		_, err := sut.Register(ctx, user)
 
 		require.ErrorIs(t, err, auth.ErrUserWithEmailIsRegistered)
 	})
