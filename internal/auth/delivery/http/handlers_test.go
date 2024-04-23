@@ -91,7 +91,7 @@ func TestRegister(t *testing.T) {
 			email    = "user@email.com"
 			password = "1234"
 		)
-		service := &service.FakeAuthService{}
+		service := &service.AuthServiceMock{}
 		service.RegisterFunc = func(user *model.User) (*model.User, error) {
 			return nil, errors.New("failed to register")
 		}
