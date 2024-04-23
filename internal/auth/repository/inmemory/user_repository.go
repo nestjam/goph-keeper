@@ -26,8 +26,8 @@ func (r *userRepository) Register(user *model.User) (*model.User, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if existingUser, ok := r.users[user.Email]; ok {
-		return existingUser, auth.ErrUserWithEmailIsRegistered
+	if _, ok := r.users[user.Email]; ok {
+		return nil, auth.ErrUserWithEmailIsRegistered
 	}
 
 	id := generateID(r.ids)

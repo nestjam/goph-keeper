@@ -25,7 +25,7 @@ func (s *authService) Register(user *model.User) (*model.User, error) {
 
 	createdUser, err := s.repo.Register(user)
 	if err != nil {
-		return createdUser, errors.Wrap(err, op)
+		return nil, errors.Wrap(err, op)
 	}
 
 	return createdUser, nil

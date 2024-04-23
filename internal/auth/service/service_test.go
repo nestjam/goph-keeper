@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/nestjam/goph-keeper/internal/auth"
 	"github.com/nestjam/goph-keeper/internal/auth/model"
 	"github.com/nestjam/goph-keeper/internal/auth/repository/inmemory"
 )
@@ -45,6 +46,20 @@ func TestRegister(t *testing.T) {
 		_, err := sut.Register(user)
 
 		require.ErrorIs(t, err, bcrypt.ErrPasswordTooLong)
+	})
+	t.Run("register new user with email that has already been registered", func(t *testing.T) {
+		const (
+			email    = "user@mail.com"
+			password = "1234"
+		)
+		repo := inmemory.NewUserRepository()
+		_, _ = repo.Register(&model.User{Email: email, Password: "psw"})
+		sut := NewAuthService(repo)
+		user := &model.User{Email: email, Password: password}
+
+		_, err := sut.Register(user)
+
+		require.ErrorIs(t, err, auth.ErrUserWithEmailIsRegistered)
 	})
 }
 
