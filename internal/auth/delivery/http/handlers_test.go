@@ -23,16 +23,17 @@ import (
 )
 
 func TestRegister(t *testing.T) {
+	const (
+		email    = "user@email.com"
+		password = "1234"
+	)
+
 	config := config.JWTAuthConfig{
 		SignKey:       "secret",
 		TokenExpiryIn: time.Minute,
 	}
 
 	t.Run("regiser new user", func(t *testing.T) {
-		const (
-			email    = "user@email.com"
-			password = "1234"
-		)
 		repo := inmemory.NewUserRepository()
 		service := service.NewAuthService(repo)
 		sut := NewAuthHandlers(service, config)
@@ -47,10 +48,6 @@ func TestRegister(t *testing.T) {
 		require.NoError(t, err)
 	})
 	t.Run("add jwt cookie on success registration", func(t *testing.T) {
-		const (
-			email    = "user@email.com"
-			password = "1234"
-		)
 		repo := inmemory.NewUserRepository()
 		service := service.NewAuthService(repo)
 		sut := NewAuthHandlers(service, config)
@@ -93,10 +90,6 @@ func TestRegister(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 	t.Run("register failed", func(t *testing.T) {
-		const (
-			email    = "user@email.com"
-			password = "1234"
-		)
 		service := &authServiceMock{}
 		service.RegisterFunc = func(ctx context.Context, user *model.User) (*model.User, error) {
 			return nil, errors.New("failed to register")

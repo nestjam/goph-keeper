@@ -16,6 +16,10 @@ import (
 )
 
 func TestMapVaultRoutes(t *testing.T) {
+	const (
+		listPath = "/list"
+	)
+
 	config := config.JWTAuthConfig{
 		SignKey:       "secret",
 		TokenExpiryIn: time.Minute,
@@ -26,34 +30,38 @@ func TestMapVaultRoutes(t *testing.T) {
 		sut := chi.NewRouter()
 
 		MapVaultRoutes(sut, handlers, config)
-		r := newListSecretsRequest(t, "/list")
-		setAuthCookie(t, r, config)
+		r := newListSecretsRequest(t, listPath)
+		want := uuid.New()
+		setAuthCookie(t, r, config, want)
 		w := httptest.NewRecorder()
 
 		sut.ServeHTTP(w, r)
 
-		assert.Equal(t, 1, handlers.listSecretsCalls)
+		assert.Equal(t, 1, handlers.calls)
+		got, ok := handlers.claims[utils.UserIDClaim]
+		require.True(t, ok)
+		assert.Equal(t, want.String(), got)
 	})
 	t.Run("user is not authenticated to list secrets", func(t *testing.T) {
 		handlers := &vaultHandlersMock{}
 		sut := chi.NewRouter()
 
 		MapVaultRoutes(sut, handlers, config)
-		r := newListSecretsRequest(t, "/list")
+		r := newListSecretsRequest(t, listPath)
 		w := httptest.NewRecorder()
 
 		sut.ServeHTTP(w, r)
 
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
-		assert.Equal(t, 0, handlers.listSecretsCalls)
+		assert.Equal(t, 0, handlers.calls)
 	})
 }
 
-func setAuthCookie(t *testing.T, r *http.Request, config config.JWTAuthConfig) {
+func setAuthCookie(t *testing.T, r *http.Request, cfg config.JWTAuthConfig, id uuid.UUID) {
 	t.Helper()
 
-	baker := utils.NewAuthCookieBaker(config)
-	cookie, err := baker.BakeCookie(uuid.New())
+	baker := utils.NewAuthCookieBaker(cfg)
+	cookie, err := baker.BakeCookie(id)
 	require.NoError(t, err)
 	r.AddCookie(cookie)
 }
