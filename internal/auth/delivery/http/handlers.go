@@ -4,25 +4,19 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"time"
 
-	"github.com/go-chi/jwtauth/v5"
 	"github.com/pkg/errors"
 
 	"github.com/nestjam/goph-keeper/internal/auth"
 	"github.com/nestjam/goph-keeper/internal/auth/model"
+	"github.com/nestjam/goph-keeper/internal/config"
+	"github.com/nestjam/goph-keeper/internal/utils"
 )
 
 const (
-	jwtCookieName = "jwt"
-	userIDClaim   = "user_id"
-	jwtAlg        = "HS256"
+	applicationJSON   = "application/json"
+	contentTypeHeader = "Content-Type"
 )
-
-type JWTAuthConfig struct {
-	SignKey       string
-	TokenExpiryIn time.Duration
-}
 
 type RegisterUserRequest struct {
 	Email    string `json:"email"`
@@ -31,10 +25,10 @@ type RegisterUserRequest struct {
 
 type AuthHandlers struct {
 	service    auth.AuthService
-	authConfig JWTAuthConfig
+	authConfig config.JWTAuthConfig
 }
 
-func NewAuthHandlers(service auth.AuthService, authConfig JWTAuthConfig) *AuthHandlers {
+func NewAuthHandlers(service auth.AuthService, authConfig config.JWTAuthConfig) *AuthHandlers {
 	return &AuthHandlers{
 		service:    service,
 		authConfig: authConfig,
@@ -42,6 +36,8 @@ func NewAuthHandlers(service auth.AuthService, authConfig JWTAuthConfig) *AuthHa
 }
 
 func (h *AuthHandlers) Register() http.HandlerFunc {
+	cookieBaker := utils.NewAuthCookieBaker(h.authConfig)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, err := getUser(r.Body)
 		if err != nil {
@@ -56,36 +52,15 @@ func (h *AuthHandlers) Register() http.HandlerFunc {
 			return
 		}
 
-		err = h.setAuthCookie(w, createdUser)
+		cookie, err := cookieBaker.BakeCookie(createdUser.ID)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		http.SetCookie(w, cookie)
 
 		w.WriteHeader(http.StatusCreated)
 	})
-}
-
-func (h *AuthHandlers) setAuthCookie(w http.ResponseWriter, user *model.User) error {
-	const op = "set auth cookie"
-
-	jwtAuth := jwtauth.New("HS256", []byte(h.authConfig.SignKey), nil)
-	claims := make(map[string]interface{})
-	claims[userIDClaim] = user.ID.String()
-	jwtauth.SetExpiryIn(claims, h.authConfig.TokenExpiryIn)
-
-	_, token, err := jwtAuth.Encode(claims)
-	if err != nil {
-		return errors.Wrap(err, op)
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     jwtCookieName,
-		Value:    token,
-		MaxAge:   int(h.authConfig.TokenExpiryIn / time.Second),
-		HttpOnly: true,
-	})
-	return nil
 }
 
 func getUser(r io.Reader) (*model.User, error) {

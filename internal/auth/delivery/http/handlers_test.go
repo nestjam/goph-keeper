@@ -18,13 +18,16 @@ import (
 	"github.com/nestjam/goph-keeper/internal/auth/model"
 	"github.com/nestjam/goph-keeper/internal/auth/repository/inmemory"
 	"github.com/nestjam/goph-keeper/internal/auth/service"
+	"github.com/nestjam/goph-keeper/internal/config"
+	"github.com/nestjam/goph-keeper/internal/utils"
 )
 
 func TestRegister(t *testing.T) {
-	config := JWTAuthConfig{
+	config := config.JWTAuthConfig{
 		SignKey:       "secret",
 		TokenExpiryIn: time.Minute,
 	}
+
 	t.Run("regiser new user", func(t *testing.T) {
 		const (
 			email    = "user@email.com"
@@ -66,15 +69,15 @@ func TestRegister(t *testing.T) {
 		cookies := res.Cookies()
 		assert.NotEmpty(t, cookies)
 		jwtCookie := cookies[0]
-		assert.Equal(t, jwtCookieName, jwtCookie.Name)
+		assert.Equal(t, utils.JWTCookieName, jwtCookie.Name)
 		wantMaxAge := int(config.TokenExpiryIn / time.Second)
 		assert.Equal(t, wantMaxAge, jwtCookie.MaxAge)
 		assert.Equal(t, true, jwtCookie.HttpOnly)
 
-		jwtAuth := jwtauth.New(jwtAlg, []byte(config.SignKey), nil)
+		jwtAuth := jwtauth.New(utils.JWTAlg, []byte(config.SignKey), nil)
 		token, err := jwtAuth.Decode(jwtCookie.Value)
 		require.NoError(t, err)
-		id, ok := token.Get(userIDClaim)
+		id, ok := token.Get(utils.UserIDClaim)
 		require.True(t, ok)
 		assert.Equal(t, user.ID.String(), id.(string))
 	})
@@ -94,7 +97,7 @@ func TestRegister(t *testing.T) {
 			email    = "user@email.com"
 			password = "1234"
 		)
-		service := &service.AuthServiceMock{}
+		service := &authServiceMock{}
 		service.RegisterFunc = func(ctx context.Context, user *model.User) (*model.User, error) {
 			return nil, errors.New("failed to register")
 		}

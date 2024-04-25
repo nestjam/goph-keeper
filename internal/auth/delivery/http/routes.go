@@ -1,13 +1,8 @@
 package http
 
 import (
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
-)
-
-const (
-	applicationJSON   = "application/json"
-	contentTypeHeader = "Content-Type"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func MapAuthRoutes(r chi.Router, h *AuthHandlers) {

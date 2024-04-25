@@ -7,10 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/nestjam/goph-keeper/internal/auth/repository/inmemory"
 	"github.com/nestjam/goph-keeper/internal/auth/service"
-	"github.com/stretchr/testify/assert"
+	"github.com/nestjam/goph-keeper/internal/config"
 )
 
 func TestMapAuthRoutes(t *testing.T) {
@@ -20,7 +22,7 @@ func TestMapAuthRoutes(t *testing.T) {
 		registerPath = "/register"
 	)
 
-	config := JWTAuthConfig{
+	config := config.JWTAuthConfig{
 		SignKey:       "secret",
 		TokenExpiryIn: time.Minute,
 	}
@@ -40,7 +42,7 @@ func TestMapAuthRoutes(t *testing.T) {
 		assert.Equal(t, http.StatusCreated, w.Code)
 	})
 	t.Run("regiser user with plain text content type", func(t *testing.T) {
-		service := &service.AuthServiceMock{}
+		service := &authServiceMock{}
 		handlers := NewAuthHandlers(service, config)
 		sut := chi.NewRouter()
 
