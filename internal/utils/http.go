@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -15,6 +16,11 @@ const (
 	JWTCookieName = "jwt"
 	UserIDClaim   = "user_id"
 	JWTAlg        = "HS256"
+)
+
+var (
+	ErrUserIDNotFound = errors.New("user id not found")
+	ErrInvalidUserID  = errors.New("invalid user id")
 )
 
 type AuthCookieBaker struct {
@@ -52,4 +58,25 @@ func (h *AuthCookieBaker) BakeCookie(userID uuid.UUID) (*http.Cookie, error) {
 		HttpOnly: true,
 	}
 	return cookie, nil
+}
+
+func UserFromContext(ctx context.Context) (uuid.UUID, error) {
+	const op = "user from context"
+	_, claims, err := jwtauth.FromContext(ctx)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, op)
+	}
+
+	claim, ok := claims[UserIDClaim]
+	if !ok {
+		return uuid.Nil, errors.Wrap(ErrUserIDNotFound, op)
+	}
+
+	s, _ := claim.(string)
+	userID, err := uuid.Parse(s)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, op)
+	}
+
+	return userID, nil
 }
