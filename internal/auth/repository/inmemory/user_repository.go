@@ -31,7 +31,7 @@ func (r *userRepository) Register(ctx context.Context, user *model.User) (*model
 		return nil, auth.ErrUserWithEmailIsRegistered
 	}
 
-	id := generateID(r.ids)
+	id := uuid.New()
 	createdUser := &model.User{
 		ID:       id,
 		Email:    user.Email,
@@ -39,16 +39,6 @@ func (r *userRepository) Register(ctx context.Context, user *model.User) (*model
 	}
 	r.users[createdUser.Email] = createdUser
 	return createdUser, nil
-}
-
-func generateID(ids map[uuid.UUID]struct{}) uuid.UUID {
-	for {
-		id := uuid.New()
-		if _, ok := ids[id]; !ok {
-			ids[id] = struct{}{}
-			return id
-		}
-	}
 }
 
 func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
