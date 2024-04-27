@@ -1,6 +1,7 @@
 package inmemory
 
 import (
+	"context"
 	"sync"
 
 	"github.com/google/uuid"
@@ -22,7 +23,7 @@ func NewSecretRepository() vault.SecretRepository {
 	}
 }
 
-func (r *secretRepository) ListSecrets(userID uuid.UUID) ([]*model.Secret, error) {
+func (r *secretRepository) ListSecrets(ctx context.Context, userID uuid.UUID) ([]*model.Secret, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -30,7 +31,7 @@ func (r *secretRepository) ListSecrets(userID uuid.UUID) ([]*model.Secret, error
 	return secrets, nil
 }
 
-func (r *secretRepository) AddSecret(secret *model.Secret, userID uuid.UUID) (*model.Secret, error) {
+func (r *secretRepository) AddSecret(ctx context.Context, s *model.Secret, userID uuid.UUID) (*model.Secret, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

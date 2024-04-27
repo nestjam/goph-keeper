@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -20,8 +21,9 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		t.Cleanup(tearDown)
 		secret := &model.Secret{}
 		userID := uuid.New()
+		ctx := context.Background()
 
-		got, err := sut.AddSecret(secret, userID)
+		got, err := sut.AddSecret(ctx, secret, userID)
 
 		require.NoError(t, err)
 		assert.NotEqual(t, uuid.Nil, got.ID)
@@ -30,8 +32,9 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		sut, tearDown := c.NewSecretRepository()
 		t.Cleanup(tearDown)
 		userID := uuid.New()
+		ctx := context.Background()
 
-		got, err := sut.ListSecrets(userID)
+		got, err := sut.ListSecrets(ctx, userID)
 
 		require.NoError(t, err)
 		assert.Empty(t, got)
@@ -40,17 +43,18 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		sut, tearDown := c.NewSecretRepository()
 		t.Cleanup(tearDown)
 		userID := uuid.New()
+		ctx := context.Background()
 		secret := &model.Secret{}
-		s1, err := sut.AddSecret(secret, userID)
+		s1, err := sut.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
-		s2, err := sut.AddSecret(secret, userID)
+		s2, err := sut.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 		user2ID := uuid.New()
 		secret = &model.Secret{}
-		_, err = sut.AddSecret(secret, user2ID)
+		_, err = sut.AddSecret(ctx, secret, user2ID)
 		require.NoError(t, err)
 
-		got, err := sut.ListSecrets(userID)
+		got, err := sut.ListSecrets(ctx, userID)
 
 		require.NoError(t, err)
 		want := []*model.Secret{s1, s2}

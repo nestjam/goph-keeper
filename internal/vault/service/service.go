@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -18,16 +20,16 @@ func NewVaultService(repo vault.SecretRepository) vault.VaultService {
 	}
 }
 
-func (s *vaultService) ListSecrets(userID uuid.UUID) ([]*model.Secret, error) {
+func (s *vaultService) ListSecrets(ctx context.Context, userID uuid.UUID) ([]*model.Secret, error) {
 	const op = "list secrets"
 
-	secrets, err := s.repo.ListSecrets(userID)
+	secrets, err := s.repo.ListSecrets(ctx, userID)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
 	return secrets, nil
 }
 
-func (s *vaultService) AddSecret(secret *model.Secret, userID uuid.UUID) (*model.Secret, error) {
+func (s *vaultService) AddSecret(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error) {
 	panic("unimplemented")
 }

@@ -38,13 +38,14 @@ func NewVaultHandlers(service vault.VaultService, authConfig config.JWTAuthConfi
 
 func (h *VaultHandlers) ListSecrets() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID, err := utils.UserFromContext(r.Context())
+		ctx := r.Context()
+		userID, err := utils.UserFromContext(ctx)
 		if err != nil {
 			setInternalServerError(w)
 			return
 		}
 
-		secrets, err := h.service.ListSecrets(userID)
+		secrets, err := h.service.ListSecrets(ctx, userID)
 		if err != nil {
 			setInternalServerError(w)
 			return

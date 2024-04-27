@@ -49,9 +49,10 @@ func TestList(t *testing.T) {
 		repo := inmemory.NewSecretRepository()
 		service := service.NewVaultService(repo)
 		sut := NewVaultHandlers(service, config)
+		ctx := context.Background()
 		userID := uuid.New()
 		secret := &model.Secret{}
-		s, err := repo.AddSecret(secret, userID)
+		s, err := repo.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 		r := newListSecretsRequestWithUser(t, userID)
 		w := httptest.NewRecorder()
@@ -71,9 +72,10 @@ func TestList(t *testing.T) {
 		repo := inmemory.NewSecretRepository()
 		service := service.NewVaultService(repo)
 		sut := NewVaultHandlers(service, config)
+		ctx := context.Background()
 		userID := uuid.New()
 		secret := &model.Secret{}
-		_, err := repo.AddSecret(secret, userID)
+		_, err := repo.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 		r := newListSecretsRequest(t, "/")
 		r = addAuthError(t, r, errors.New("failed"))
@@ -85,7 +87,7 @@ func TestList(t *testing.T) {
 	})
 	t.Run("failed to list secrets", func(t *testing.T) {
 		service := &vaultServiceMock{
-			ListSecretsFunc: func(userID uuid.UUID) ([]*model.Secret, error) {
+			ListSecretsFunc: func(ctx context.Context, userID uuid.UUID) ([]*model.Secret, error) {
 				return nil, errors.New("failed")
 			},
 		}
