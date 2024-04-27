@@ -10,6 +10,8 @@ import (
 )
 
 func MapVaultRoutes(r chi.Router, h vault.VaultHandlers, cfg config.JWTAuthConfig) {
+	const secretsPath = "/secrets"
+
 	cookieBaker := utils.NewAuthCookieBaker(cfg)
 	jwtAuth := cookieBaker.JWTAuth()
 
@@ -17,6 +19,7 @@ func MapVaultRoutes(r chi.Router, h vault.VaultHandlers, cfg config.JWTAuthConfi
 		r.Use(jwtauth.Verifier(jwtAuth))
 		r.Use(jwtauth.Authenticator(jwtAuth))
 
-		r.Get("/list", h.ListSecrets())
+		r.Get(secretsPath, h.ListSecrets())
+		r.Post(secretsPath, h.AddSecret())
 	})
 }

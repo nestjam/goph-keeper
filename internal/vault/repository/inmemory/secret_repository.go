@@ -35,13 +35,19 @@ func (r *secretRepository) AddSecret(ctx context.Context, s *model.Secret, userI
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	id := uuid.New()
-	createdSecret := &model.Secret{ID: id}
-	r.secrets[createdSecret.ID] = createdSecret
+	secret := copySecret(s)
+	secret.ID = uuid.New()
 
-	addUserSecret(r, createdSecret, userID)
+	r.secrets[secret.ID] = secret
+	addUserSecret(r, secret, userID)
 
-	return createdSecret, nil
+	return secret, nil
+}
+
+func copySecret(secret *model.Secret) *model.Secret {
+	return &model.Secret{
+		Payload: secret.Payload,
+	}
 }
 
 func addUserSecret(r *secretRepository, secret *model.Secret, userID uuid.UUID) {

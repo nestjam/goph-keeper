@@ -4,25 +4,18 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/pkg/errors"
+
 	"github.com/nestjam/goph-keeper/internal/config"
 	"github.com/nestjam/goph-keeper/internal/utils"
 	"github.com/nestjam/goph-keeper/internal/vault"
 	"github.com/nestjam/goph-keeper/internal/vault/model"
-	"github.com/pkg/errors"
 )
 
 const (
 	contentTypeHeader = "Content-Type"
 	applicationJSON   = "application/json"
 )
-
-type ListSecretsResponse struct {
-	List []SecretInfo `json:"list,omitempty"`
-}
-
-type SecretInfo struct {
-	ID string `json:"id"`
-}
 
 type VaultHandlers struct {
 	service    vault.VaultService
@@ -41,27 +34,73 @@ func (h *VaultHandlers) ListSecrets() http.HandlerFunc {
 		ctx := r.Context()
 		userID, err := utils.UserFromContext(ctx)
 		if err != nil {
-			setInternalServerError(w)
+			writeInternalServerError(w)
 			return
 		}
 
 		secrets, err := h.service.ListSecrets(ctx, userID)
 		if err != nil {
-			setInternalServerError(w)
+			writeInternalServerError(w)
 			return
 		}
 
 		resp := createListSecretsResponse(secrets)
-		err = setOK(w, resp)
+		err = writeJSON(w, http.StatusOK, resp)
 		if err != nil {
-			setInternalServerError(w)
+			writeInternalServerError(w)
 			return
 		}
 	})
 }
 
-func setOK(w http.ResponseWriter, v any) error {
-	const op = "set OK"
+func (h *VaultHandlers) AddSecret() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		userID, err := utils.UserFromContext(ctx)
+		if err != nil {
+			writeInternalServerError(w)
+			return
+		}
+
+		secret, err := getSecret(r)
+		if err != nil {
+			writeInternalServerError(w)
+			return
+		}
+
+		addedSecret, err := h.service.AddSecret(ctx, secret, userID)
+		if err != nil {
+			writeInternalServerError(w)
+			return
+		}
+
+		resp := createAddSecretResponse(addedSecret)
+		err = writeJSON(w, http.StatusCreated, resp)
+		if err != nil {
+			writeInternalServerError(w)
+			return
+		}
+	})
+}
+
+func getSecret(r *http.Request) (*model.Secret, error) {
+	const op = "get secret"
+
+	var req AddSecretRequest
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&req)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	secret := &model.Secret{
+		Payload: req.Secret.Payload,
+	}
+	return secret, nil
+}
+
+func writeJSON(w http.ResponseWriter, statusCode int, v any) error {
+	const op = "write json"
 
 	content, err := json.Marshal(v)
 	if err != nil {
@@ -69,24 +108,32 @@ func setOK(w http.ResponseWriter, v any) error {
 	}
 
 	w.Header().Set(contentTypeHeader, applicationJSON)
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(statusCode)
 	_, _ = w.Write(content)
 	return nil
 }
 
-func setInternalServerError(w http.ResponseWriter) {
+func writeInternalServerError(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
 func createListSecretsResponse(secrets []*model.Secret) *ListSecretsResponse {
 	resp := &ListSecretsResponse{
-		List: make([]SecretInfo, len(secrets)),
+		List: make([]Secret, len(secrets)),
 	}
 
 	for i := 0; i < len(secrets); i++ {
 		s := secrets[i]
-		resp.List[i] = SecretInfo{ID: s.ID.String()}
+		resp.List[i] = Secret{ID: s.ID.String()}
 	}
 
 	return resp
+}
+
+func createAddSecretResponse(secret *model.Secret) *AddSecretResponse {
+	return &AddSecretResponse{
+		Secret: Secret{
+			ID: secret.ID.String(),
+		},
+	}
 }

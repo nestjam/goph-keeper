@@ -10,8 +10,13 @@ import (
 
 type vaultServiceMock struct {
 	ListSecretsFunc func(ctx context.Context, userID uuid.UUID) ([]*model.Secret, error)
+	AddSecretFunc   func(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error)
 }
 
-func (s *vaultServiceMock) ListSecrets(ctx context.Context, userID uuid.UUID) ([]*model.Secret, error) {
-	return s.ListSecretsFunc(ctx, userID)
+func (m *vaultServiceMock) ListSecrets(ctx context.Context, userID uuid.UUID) ([]*model.Secret, error) {
+	return m.ListSecretsFunc(ctx, userID)
+}
+
+func (m *vaultServiceMock) AddSecret(ctx context.Context, s *model.Secret, userID uuid.UUID) (*model.Secret, error) {
+	return m.AddSecretFunc(ctx, s, userID)
 }

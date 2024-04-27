@@ -1,6 +1,8 @@
 package http
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,7 +19,7 @@ import (
 
 func TestMapVaultRoutes(t *testing.T) {
 	const (
-		listPath = "/list"
+		secretsPath = "/secrets"
 	)
 
 	config := config.JWTAuthConfig{
@@ -25,36 +27,63 @@ func TestMapVaultRoutes(t *testing.T) {
 		TokenExpiryIn: time.Minute,
 	}
 
-	t.Run("list secrets", func(t *testing.T) {
-		handlers := &vaultHandlersMock{}
-		sut := chi.NewRouter()
+	t.Run("get secrets", func(t *testing.T) {
+		t.Run("list secrets", func(t *testing.T) {
+			spy := &vaultHandlersSpy{}
+			sut := chi.NewRouter()
 
-		MapVaultRoutes(sut, handlers, config)
-		r := newListSecretsRequest(t, listPath)
-		want := uuid.New()
-		setAuthCookie(t, r, config, want)
-		w := httptest.NewRecorder()
+			MapVaultRoutes(sut, spy, config)
+			r := newListSecretsRequest(t, secretsPath)
+			want := uuid.New()
+			setAuthCookie(t, r, config, want)
+			w := httptest.NewRecorder()
 
-		sut.ServeHTTP(w, r)
+			sut.ServeHTTP(w, r)
 
-		assert.Equal(t, 1, handlers.calls)
-		got, ok := handlers.claims[utils.UserIDClaim]
-		require.True(t, ok)
-		assert.Equal(t, want.String(), got)
+			assert.Equal(t, 1, spy.callsCount)
+			assertUserIDFromToken(t, want, spy)
+		})
+		t.Run("user is not authenticated to list secrets", func(t *testing.T) {
+			handlers := &vaultHandlersSpy{}
+			sut := chi.NewRouter()
+
+			MapVaultRoutes(sut, handlers, config)
+			r := newListSecretsRequest(t, secretsPath)
+			w := httptest.NewRecorder()
+
+			sut.ServeHTTP(w, r)
+
+			assert.Equal(t, http.StatusUnauthorized, w.Code)
+			assert.Equal(t, 0, handlers.callsCount)
+		})
 	})
-	t.Run("user is not authenticated to list secrets", func(t *testing.T) {
-		handlers := &vaultHandlersMock{}
-		sut := chi.NewRouter()
 
-		MapVaultRoutes(sut, handlers, config)
-		r := newListSecretsRequest(t, listPath)
-		w := httptest.NewRecorder()
+	t.Run("post secret", func(t *testing.T) {
+		t.Run("add secret", func(t *testing.T) {
+			spy := &vaultHandlersSpy{}
+			sut := chi.NewRouter()
 
-		sut.ServeHTTP(w, r)
+			MapVaultRoutes(sut, spy, config)
+			secret := Secret{}
+			r := newAddSecretRequest(t, secretsPath, secret)
+			want := uuid.New()
+			setAuthCookie(t, r, config, want)
+			w := httptest.NewRecorder()
 
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
-		assert.Equal(t, 0, handlers.calls)
+			sut.ServeHTTP(w, r)
+
+			assert.Equal(t, 1, spy.callsCount)
+			assertUserIDFromToken(t, want, spy)
+		})
 	})
+}
+
+func assertUserIDFromToken(t *testing.T, userID uuid.UUID, spy *vaultHandlersSpy) {
+	t.Helper()
+
+	got, ok := spy.claims[utils.UserIDClaim]
+	require.True(t, ok)
+	assert.Equal(t, userID.String(), got)
 }
 
 func setAuthCookie(t *testing.T, r *http.Request, cfg config.JWTAuthConfig, id uuid.UUID) {
@@ -64,4 +93,13 @@ func setAuthCookie(t *testing.T, r *http.Request, cfg config.JWTAuthConfig, id u
 	cookie, err := baker.BakeCookie(id)
 	require.NoError(t, err)
 	r.AddCookie(cookie)
+}
+
+func newAddSecretRequest(t *testing.T, path string, secret Secret) *http.Request {
+	t.Helper()
+
+	r := AddSecretRequest{Secret: secret}
+	content, err := json.Marshal(r)
+	require.NoError(t, err)
+	return httptest.NewRequest(http.MethodPost, path, bytes.NewReader(content))
 }

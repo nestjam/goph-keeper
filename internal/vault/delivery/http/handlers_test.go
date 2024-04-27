@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,11 +24,8 @@ import (
 	"github.com/nestjam/goph-keeper/internal/vault/service"
 )
 
-func TestList(t *testing.T) {
-	config := config.JWTAuthConfig{
-		SignKey:       "secret",
-		TokenExpiryIn: time.Minute,
-	}
+func TestListSecrets(t *testing.T) {
+	config := getConfig()
 
 	t.Run("empty list", func(t *testing.T) {
 		repo := inmemory.NewSecretRepository()
@@ -57,7 +55,7 @@ func TestList(t *testing.T) {
 		r := newListSecretsRequestWithUser(t, userID)
 		w := httptest.NewRecorder()
 		want := ListSecretsResponse{
-			List: []SecretInfo{
+			List: []Secret{
 				{ID: s.ID.String()},
 			},
 		}
@@ -72,11 +70,6 @@ func TestList(t *testing.T) {
 		repo := inmemory.NewSecretRepository()
 		service := service.NewVaultService(repo)
 		sut := NewVaultHandlers(service, config)
-		ctx := context.Background()
-		userID := uuid.New()
-		secret := &model.Secret{}
-		_, err := repo.AddSecret(ctx, secret, userID)
-		require.NoError(t, err)
 		r := newListSecretsRequest(t, "/")
 		r = addAuthError(t, r, errors.New("failed"))
 		w := httptest.NewRecorder()
@@ -102,6 +95,98 @@ func TestList(t *testing.T) {
 	})
 }
 
+func TestAddSecret(t *testing.T) {
+	config := getConfig()
+
+	t.Run("add secret", func(t *testing.T) {
+		repo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(repo)
+		sut := NewVaultHandlers(service, config)
+		payload := "sensitive data"
+		secret := Secret{Payload: payload}
+		userID := uuid.New()
+		r := newAddSecretRequestWithUser(t, secret, userID)
+		w := httptest.NewRecorder()
+
+		sut.AddSecret().ServeHTTP(w, r)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+		ctx := context.Background()
+		secrets, err := repo.ListSecrets(ctx, userID)
+		require.NoError(t, err)
+		assert.Equal(t, 1, len(secrets))
+		want := secrets[0]
+		assert.Equal(t, payload, want.Payload)
+
+		resp := getAddSecretResponse(t, w.Body)
+		assert.Equal(t, want.ID.String(), resp.Secret.ID)
+	})
+	t.Run("user not found in context", func(t *testing.T) {
+		repo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(repo)
+		sut := NewVaultHandlers(service, config)
+		secret := Secret{}
+		r := newAddSecretRequest(t, "/", secret)
+		r = addAuthError(t, r, errors.New("failed"))
+		w := httptest.NewRecorder()
+
+		sut.AddSecret().ServeHTTP(w, r)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+	t.Run("failed to add secret", func(t *testing.T) {
+		service := &vaultServiceMock{
+			AddSecretFunc: func(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error) {
+				return nil, errors.New("failed")
+			},
+		}
+		sut := NewVaultHandlers(service, config)
+		userID := uuid.New()
+		secret := Secret{}
+		r := newAddSecretRequestWithUser(t, secret, userID)
+		w := httptest.NewRecorder()
+
+		sut.AddSecret().ServeHTTP(w, r)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+	t.Run("invalid json", func(t *testing.T) {
+		repo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(repo)
+		sut := NewVaultHandlers(service, config)
+		userID := uuid.New()
+		r := newInvalidAddSecretRequestWithUser(t, userID)
+		w := httptest.NewRecorder()
+
+		sut.AddSecret().ServeHTTP(w, r)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+}
+
+func getConfig() config.JWTAuthConfig {
+	return config.JWTAuthConfig{
+		SignKey:       "secret",
+		TokenExpiryIn: time.Minute,
+	}
+}
+
+func newAddSecretRequestWithUser(t *testing.T, secret Secret, userID uuid.UUID) *http.Request {
+	t.Helper()
+
+	r := newAddSecretRequest(t, "/", secret)
+	r = addAuthToken(t, r, userID)
+	return r
+}
+
+func newInvalidAddSecretRequestWithUser(t *testing.T, userID uuid.UUID) *http.Request {
+	t.Helper()
+
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("{{invalid json]}"))
+	r = addAuthToken(t, r, userID)
+	return r
+}
+
 func newListSecretsRequest(t *testing.T, path string) *http.Request {
 	t.Helper()
 
@@ -120,6 +205,16 @@ func getListSecretsResponse(t *testing.T, r io.Reader) ListSecretsResponse {
 	t.Helper()
 
 	var resp ListSecretsResponse
+	decoder := json.NewDecoder(r)
+	err := decoder.Decode(&resp)
+	require.NoError(t, err)
+	return resp
+}
+
+func getAddSecretResponse(t *testing.T, r io.Reader) AddSecretResponse {
+	t.Helper()
+
+	var resp AddSecretResponse
 	decoder := json.NewDecoder(r)
 	err := decoder.Decode(&resp)
 	require.NoError(t, err)

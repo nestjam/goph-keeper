@@ -31,5 +31,11 @@ func (s *vaultService) ListSecrets(ctx context.Context, userID uuid.UUID) ([]*mo
 }
 
 func (s *vaultService) AddSecret(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error) {
-	panic("unimplemented")
+	const op = "add secret"
+
+	addedSecret, err := s.repo.AddSecret(ctx, secret, userID)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+	return addedSecret, nil
 }

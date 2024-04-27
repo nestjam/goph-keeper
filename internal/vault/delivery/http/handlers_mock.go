@@ -6,14 +6,22 @@ import (
 	"github.com/go-chi/jwtauth/v5"
 )
 
-type vaultHandlersMock struct {
-	claims map[string]interface{}
-	calls  int
+type vaultHandlersSpy struct {
+	claims     map[string]interface{}
+	callsCount int
 }
 
-func (m *vaultHandlersMock) ListSecrets() http.HandlerFunc {
+func (m *vaultHandlersSpy) ListSecrets() http.HandlerFunc {
+	return m.spy()
+}
+
+func (m *vaultHandlersSpy) AddSecret() http.HandlerFunc {
+	return m.spy()
+}
+
+func (m *vaultHandlersSpy) spy() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		m.calls++
+		m.callsCount++
 		_, m.claims, _ = jwtauth.FromContext(r.Context())
 	})
 }
