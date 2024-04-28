@@ -28,7 +28,7 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEqual(t, uuid.Nil, got.ID)
 	})
-	t.Run("list empty user secrets", func(t *testing.T) {
+	t.Run("user has no secrets", func(t *testing.T) {
 		sut, tearDown := c.NewSecretRepository()
 		t.Cleanup(tearDown)
 		userID := uuid.New()
@@ -39,7 +39,24 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, got)
 	})
-	t.Run("list user secrets", func(t *testing.T) {
+	t.Run("list user secrets without sensitive data", func(t *testing.T) {
+		sut, tearDown := c.NewSecretRepository()
+		t.Cleanup(tearDown)
+		userID := uuid.New()
+		ctx := context.Background()
+		secret := &model.Secret{Data: "1"}
+		s1, err := sut.AddSecret(ctx, secret, userID)
+		require.NoError(t, err)
+		want := []*model.Secret{
+			{ID: s1.ID},
+		}
+
+		got, err := sut.ListSecrets(ctx, userID)
+
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+	})
+	t.Run("list secrets of selected user", func(t *testing.T) {
 		sut, tearDown := c.NewSecretRepository()
 		t.Cleanup(tearDown)
 		userID := uuid.New()
@@ -47,17 +64,21 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		secret := &model.Secret{}
 		s1, err := sut.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
+		secret = &model.Secret{}
 		s2, err := sut.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 		user2ID := uuid.New()
 		secret = &model.Secret{}
 		_, err = sut.AddSecret(ctx, secret, user2ID)
 		require.NoError(t, err)
+		want := []*model.Secret{
+			{ID: s1.ID},
+			{ID: s2.ID},
+		}
 
 		got, err := sut.ListSecrets(ctx, userID)
 
 		require.NoError(t, err)
-		want := []*model.Secret{s1, s2}
 		assert.Equal(t, want, got)
 	})
 }

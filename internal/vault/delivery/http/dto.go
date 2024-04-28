@@ -5,8 +5,8 @@ type ListSecretsResponse struct {
 }
 
 type Secret struct {
-	ID      string `json:"id"`
-	Payload string `json:"payload,omitempty"`
+	ID   string `json:"id"`
+	Data string `json:"data,omitempty"`
 }
 
 type AddSecretRequest struct {

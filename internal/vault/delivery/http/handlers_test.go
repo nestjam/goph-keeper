@@ -102,8 +102,8 @@ func TestAddSecret(t *testing.T) {
 		repo := inmemory.NewSecretRepository()
 		service := service.NewVaultService(repo)
 		sut := NewVaultHandlers(service, config)
-		payload := "sensitive data"
-		secret := Secret{Payload: payload}
+		data := "sensitive data"
+		secret := Secret{Data: data}
 		userID := uuid.New()
 		r := newAddSecretRequestWithUser(t, secret, userID)
 		w := httptest.NewRecorder()
@@ -116,7 +116,6 @@ func TestAddSecret(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 1, len(secrets))
 		want := secrets[0]
-		assert.Equal(t, payload, want.Payload)
 
 		resp := getAddSecretResponse(t, w.Body)
 		assert.Equal(t, want.ID.String(), resp.Secret.ID)

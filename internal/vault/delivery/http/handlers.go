@@ -94,7 +94,7 @@ func getSecret(r *http.Request) (*model.Secret, error) {
 	}
 
 	secret := &model.Secret{
-		Payload: req.Secret.Payload,
+		Data: req.Secret.Data,
 	}
 	return secret, nil
 }

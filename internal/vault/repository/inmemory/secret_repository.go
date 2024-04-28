@@ -27,7 +27,14 @@ func (r *secretRepository) ListSecrets(ctx context.Context, userID uuid.UUID) ([
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	secrets := r.userSecrets[userID]
+	userSecrets := r.userSecrets[userID]
+	secrets := make([]*model.Secret, len(userSecrets))
+
+	for i := 0; i < len(userSecrets); i++ {
+		secrets[i] = copySecret(userSecrets[i])
+		secrets[i].Data = ""
+	}
+
 	return secrets, nil
 }
 
@@ -46,7 +53,8 @@ func (r *secretRepository) AddSecret(ctx context.Context, s *model.Secret, userI
 
 func copySecret(secret *model.Secret) *model.Secret {
 	return &model.Secret{
-		Payload: secret.Payload,
+		ID:   secret.ID,
+		Data: secret.Data,
 	}
 }
 
