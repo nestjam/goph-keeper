@@ -41,7 +41,7 @@ func TestMapAuthRoutes(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 	})
-	t.Run("regiser user with plain text content type", func(t *testing.T) {
+	t.Run("request to regiser user with plain text content type", func(t *testing.T) {
 		service := &authServiceMock{}
 		handlers := NewAuthHandlers(service, config)
 		sut := chi.NewRouter()

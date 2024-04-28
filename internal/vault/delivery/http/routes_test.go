@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -75,7 +76,27 @@ func TestMapVaultRoutes(t *testing.T) {
 			assert.Equal(t, 1, spy.callsCount)
 			assertUserIDFromToken(t, want, spy)
 		})
+		t.Run("request to add secret with plain text content type", func(t *testing.T) {
+			spy := &vaultHandlersSpy{}
+			sut := chi.NewRouter()
+			MapVaultRoutes(sut, spy, config)
+			r := newPlainTextRequest(t, secretsPath)
+			w := httptest.NewRecorder()
+
+			sut.ServeHTTP(w, r)
+
+			assert.Equal(t, http.StatusUnsupportedMediaType, w.Code)
+		})
 	})
+}
+
+func newPlainTextRequest(t *testing.T, target string) *http.Request {
+	t.Helper()
+
+	body := "plaint text"
+	r := httptest.NewRequest(http.MethodPost, target, strings.NewReader(body))
+	r.Header.Set(contentTypeHeader, "text/plain")
+	return r
 }
 
 func assertUserIDFromToken(t *testing.T, userID uuid.UUID, spy *vaultHandlersSpy) {
@@ -98,8 +119,10 @@ func setAuthCookie(t *testing.T, r *http.Request, cfg config.JWTAuthConfig, id u
 func newAddSecretRequest(t *testing.T, path string, secret Secret) *http.Request {
 	t.Helper()
 
-	r := AddSecretRequest{Secret: secret}
-	content, err := json.Marshal(r)
+	req := AddSecretRequest{Secret: secret}
+	content, err := json.Marshal(req)
 	require.NoError(t, err)
-	return httptest.NewRequest(http.MethodPost, path, bytes.NewReader(content))
+	r := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(content))
+	r.Header.Set(contentTypeHeader, applicationJSON)
+	return r
 }
