@@ -7,10 +7,11 @@ import (
 )
 
 type vaultHandlersSpy struct {
-	claims                map[string]interface{}
-	listSecretsCallsCount int
-	addSecretCallsCount   int
-	getSecretCallsCount   int
+	claims                 map[string]interface{}
+	listSecretsCallsCount  int
+	addSecretCallsCount    int
+	getSecretCallsCount    int
+	deleteSecretCallsCount int
 }
 
 func (m *vaultHandlersSpy) ListSecrets() http.HandlerFunc {
@@ -30,5 +31,11 @@ func (m *vaultHandlersSpy) AddSecret() http.HandlerFunc {
 func (m *vaultHandlersSpy) GetSecret() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		m.getSecretCallsCount++
+	})
+}
+
+func (m *vaultHandlersSpy) DeleteSecret() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		m.deleteSecretCallsCount++
 	})
 }

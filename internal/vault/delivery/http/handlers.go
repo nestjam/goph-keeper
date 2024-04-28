@@ -116,6 +116,12 @@ func (h *VaultHandlers) GetSecret() http.HandlerFunc {
 	})
 }
 
+func (h *VaultHandlers) DeleteSecret() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("unimplemented")
+	})
+}
+
 func newGetSecretResponse(secret *model.Secret) GetSecretResponse {
 	return GetSecretResponse{
 		Secret: Secret{

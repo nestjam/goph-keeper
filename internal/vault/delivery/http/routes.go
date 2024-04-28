@@ -11,7 +11,10 @@ import (
 )
 
 func MapVaultRoutes(r chi.Router, h vault.VaultHandlers, cfg config.JWTAuthConfig) {
-	const secretsPath = "/secrets"
+	const (
+		secretsPath   = "/secrets"
+		secretPattern = "/{secret}"
+	)
 
 	cookieBaker := utils.NewAuthCookieBaker(cfg)
 	jwtAuth := cookieBaker.JWTAuth()
@@ -20,7 +23,8 @@ func MapVaultRoutes(r chi.Router, h vault.VaultHandlers, cfg config.JWTAuthConfi
 		useJWTAuth(r, jwtAuth)
 
 		r.Get(secretsPath, h.ListSecrets())
-		r.Get(secretsPath+"/{secret}", h.GetSecret())
+		r.Get(secretsPath+secretPattern, h.GetSecret())
+		r.Delete(secretsPath+secretPattern, h.DeleteSecret())
 	})
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AllowContentType(applicationJSON))
