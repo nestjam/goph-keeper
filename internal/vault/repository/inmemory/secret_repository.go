@@ -10,16 +10,16 @@ import (
 	"github.com/nestjam/goph-keeper/internal/vault/model"
 )
 
+type userSecrets map[uuid.UUID]*model.Secret
+
 type secretRepository struct {
-	secrets     map[uuid.UUID]*model.Secret
-	userSecrets map[uuid.UUID][]*model.Secret
+	userSecrets map[uuid.UUID]userSecrets
 	mu          sync.Mutex
 }
 
 func NewSecretRepository() vault.SecretRepository {
 	return &secretRepository{
-		secrets:     make(map[uuid.UUID]*model.Secret),
-		userSecrets: make(map[uuid.UUID][]*model.Secret),
+		userSecrets: make(map[uuid.UUID]userSecrets),
 	}
 }
 
@@ -30,9 +30,11 @@ func (r *secretRepository) ListSecrets(ctx context.Context, userID uuid.UUID) ([
 	userSecrets := r.userSecrets[userID]
 	secrets := make([]*model.Secret, len(userSecrets))
 
-	for i := 0; i < len(userSecrets); i++ {
-		secrets[i] = copySecret(userSecrets[i])
+	i := 0
+	for _, secret := range userSecrets {
+		secrets[i] = copySecret(secret)
 		secrets[i].Data = ""
+		i++
 	}
 
 	return secrets, nil
@@ -45,8 +47,28 @@ func (r *secretRepository) AddSecret(ctx context.Context, s *model.Secret, userI
 	secret := copySecret(s)
 	secret.ID = uuid.New()
 
-	r.secrets[secret.ID] = secret
-	addUserSecret(r, secret, userID)
+	if _, ok := r.userSecrets[userID]; !ok {
+		r.userSecrets[userID] = make(userSecrets)
+	}
+	secrets := r.userSecrets[userID]
+	secrets[secret.ID] = secret
+
+	return secret, nil
+}
+
+func (r *secretRepository) GetSecret(ctx context.Context, secretID, userID uuid.UUID) (*model.Secret, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	userSecrets, ok := r.userSecrets[userID]
+	if !ok {
+		return nil, vault.ErrUserDoesNotExist
+	}
+
+	secret, ok := userSecrets[secretID]
+	if !ok {
+		return nil, vault.ErrSecretDoesNotExist
+	}
 
 	return secret, nil
 }
@@ -56,10 +78,4 @@ func copySecret(secret *model.Secret) *model.Secret {
 		ID:   secret.ID,
 		Data: secret.Data,
 	}
-}
-
-func addUserSecret(r *secretRepository, secret *model.Secret, userID uuid.UUID) {
-	secrets := r.userSecrets[userID]
-	secrets = append(secrets, secret)
-	r.userSecrets[userID] = secrets
 }

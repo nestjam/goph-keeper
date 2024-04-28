@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/v2/jwt"
@@ -19,13 +20,14 @@ import (
 
 	"github.com/nestjam/goph-keeper/internal/config"
 	"github.com/nestjam/goph-keeper/internal/utils"
+	"github.com/nestjam/goph-keeper/internal/vault"
 	"github.com/nestjam/goph-keeper/internal/vault/model"
 	"github.com/nestjam/goph-keeper/internal/vault/repository/inmemory"
 	"github.com/nestjam/goph-keeper/internal/vault/service"
 )
 
 func TestListSecrets(t *testing.T) {
-	config := getConfig()
+	config := newConfig()
 
 	t.Run("empty list", func(t *testing.T) {
 		repo := inmemory.NewSecretRepository()
@@ -39,9 +41,8 @@ func TestListSecrets(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		assertContentType(t, applicationJSON, w)
-		resp := getListSecretsResponse(t, w.Body)
-		assert.NotNil(t, resp)
-		assert.Empty(t, resp.List)
+		got := listSecretsFromResponse(t, w.Body)
+		assert.Empty(t, got)
 	})
 	t.Run("secrets", func(t *testing.T) {
 		repo := inmemory.NewSecretRepository()
@@ -54,16 +55,14 @@ func TestListSecrets(t *testing.T) {
 		require.NoError(t, err)
 		r := newListSecretsRequestWithUser(t, userID)
 		w := httptest.NewRecorder()
-		want := ListSecretsResponse{
-			List: []Secret{
-				{ID: s.ID.String()},
-			},
+		want := []Secret{
+			{ID: s.ID.String()},
 		}
 
 		sut.ListSecrets().ServeHTTP(w, r)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		got := getListSecretsResponse(t, w.Body)
+		got := listSecretsFromResponse(t, w.Body)
 		assert.Equal(t, want, got)
 	})
 	t.Run("user not found in context", func(t *testing.T) {
@@ -96,7 +95,7 @@ func TestListSecrets(t *testing.T) {
 }
 
 func TestAddSecret(t *testing.T) {
-	config := getConfig()
+	config := newConfig()
 
 	t.Run("add secret", func(t *testing.T) {
 		repo := inmemory.NewSecretRepository()
@@ -163,7 +162,104 @@ func TestAddSecret(t *testing.T) {
 	})
 }
 
-func getConfig() config.JWTAuthConfig {
+func TestGetSecret(t *testing.T) {
+	config := newConfig()
+
+	t.Run("get secret", func(t *testing.T) {
+		repo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(repo)
+		sut := NewVaultHandlers(service, config)
+		ctx := context.Background()
+		userID := uuid.New()
+		secret := &model.Secret{}
+		want, err := repo.AddSecret(ctx, secret, userID)
+		require.NoError(t, err)
+		r := newGetSecretRequestWithUser(t, want.ID, userID)
+		w := httptest.NewRecorder()
+
+		getSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		got := secretFromResponse(t, w.Body)
+		assert.Equal(t, want.ID.String(), got.ID)
+		assert.Equal(t, want.Data, got.Data)
+	})
+	t.Run("invalid secret id", func(t *testing.T) {
+		repo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(repo)
+		sut := NewVaultHandlers(service, config)
+		r := newInvalidIDGetSecretRequest(t)
+		w := httptest.NewRecorder()
+
+		getSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+	t.Run("user not found in context", func(t *testing.T) {
+		repo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(repo)
+		sut := NewVaultHandlers(service, config)
+		ctx := context.Background()
+		userID := uuid.New()
+		secret, err := repo.AddSecret(ctx, &model.Secret{}, userID)
+		require.NoError(t, err)
+		r := newGetSecretRequest(t, "", secret.ID)
+		r = addAuthError(t, r, errors.New("failed"))
+		w := httptest.NewRecorder()
+
+		getSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+	t.Run("failed to get secret", func(t *testing.T) {
+		service := &vaultServiceMock{
+			GetSecretFunc: func(ctx context.Context, secretID, userID uuid.UUID) (*model.Secret, error) {
+				return nil, errors.New("failed")
+			},
+		}
+		sut := NewVaultHandlers(service, config)
+		userID := uuid.New()
+		secretID := uuid.New()
+		r := newGetSecretRequestWithUser(t, secretID, userID)
+		w := httptest.NewRecorder()
+
+		getSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+}
+
+func getSecret(sut vault.VaultHandlers, w *httptest.ResponseRecorder, r *http.Request) {
+	router := chi.NewRouter()
+	router.Get("/{secret}", sut.GetSecret())
+	router.ServeHTTP(w, r)
+}
+
+func secretFromResponse(t *testing.T, r io.Reader) Secret {
+	t.Helper()
+
+	var resp GetSecretResponse
+	decoder := json.NewDecoder(r)
+	err := decoder.Decode(&resp)
+	require.NoError(t, err)
+	return resp.Secret
+}
+
+func newGetSecretRequestWithUser(t *testing.T, secretID, userID uuid.UUID) *http.Request {
+	t.Helper()
+
+	r := newGetSecretRequest(t, "", secretID)
+	r = addAuthToken(t, r, userID)
+	return r
+}
+
+func newInvalidIDGetSecretRequest(t *testing.T) *http.Request {
+	t.Helper()
+
+	return httptest.NewRequest(http.MethodGet, "/abc", nil)
+}
+
+func newConfig() config.JWTAuthConfig {
 	return config.JWTAuthConfig{
 		SignKey:       "secret",
 		TokenExpiryIn: time.Minute,
@@ -200,14 +296,14 @@ func newListSecretsRequestWithUser(t *testing.T, userID uuid.UUID) *http.Request
 	return r
 }
 
-func getListSecretsResponse(t *testing.T, r io.Reader) ListSecretsResponse {
+func listSecretsFromResponse(t *testing.T, r io.Reader) []Secret {
 	t.Helper()
 
 	var resp ListSecretsResponse
 	decoder := json.NewDecoder(r)
 	err := decoder.Decode(&resp)
 	require.NoError(t, err)
-	return resp
+	return resp.List
 }
 
 func getAddSecretResponse(t *testing.T, r io.Reader) AddSecretResponse {

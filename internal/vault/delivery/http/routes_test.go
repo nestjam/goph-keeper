@@ -41,7 +41,7 @@ func TestMapVaultRoutes(t *testing.T) {
 
 			sut.ServeHTTP(w, r)
 
-			assert.Equal(t, 1, spy.callsCount)
+			assert.Equal(t, 1, spy.listSecretsCallsCount)
 			assertUserIDFromToken(t, want, spy)
 		})
 		t.Run("user is not authenticated to list secrets", func(t *testing.T) {
@@ -55,7 +55,7 @@ func TestMapVaultRoutes(t *testing.T) {
 			sut.ServeHTTP(w, r)
 
 			assert.Equal(t, http.StatusUnauthorized, w.Code)
-			assert.Equal(t, 0, handlers.callsCount)
+			assert.Equal(t, 0, handlers.listSecretsCallsCount)
 		})
 	})
 
@@ -73,7 +73,7 @@ func TestMapVaultRoutes(t *testing.T) {
 
 			sut.ServeHTTP(w, r)
 
-			assert.Equal(t, 1, spy.callsCount)
+			assert.Equal(t, 1, spy.addSecretCallsCount)
 			assertUserIDFromToken(t, want, spy)
 		})
 		t.Run("request to add secret with plain text content type", func(t *testing.T) {
@@ -88,6 +88,28 @@ func TestMapVaultRoutes(t *testing.T) {
 			assert.Equal(t, http.StatusUnsupportedMediaType, w.Code)
 		})
 	})
+
+	t.Run("get secret", func(t *testing.T) {
+		spy := &vaultHandlersSpy{}
+		sut := chi.NewRouter()
+
+		MapVaultRoutes(sut, spy, config)
+		secretID := uuid.New()
+		r := newGetSecretRequest(t, secretsPath, secretID)
+		userID := uuid.New()
+		setAuthCookie(t, r, config, userID)
+		w := httptest.NewRecorder()
+
+		sut.ServeHTTP(w, r)
+
+		assert.Equal(t, 1, spy.getSecretCallsCount)
+	})
+}
+
+func newGetSecretRequest(t *testing.T, path string, secretID uuid.UUID) *http.Request {
+	t.Helper()
+
+	return httptest.NewRequest(http.MethodGet, path+"/"+secretID.String(), nil)
 }
 
 func newPlainTextRequest(t *testing.T, target string) *http.Request {

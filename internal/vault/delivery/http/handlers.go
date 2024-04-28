@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
 	"github.com/nestjam/goph-keeper/internal/config"
@@ -44,7 +46,7 @@ func (h *VaultHandlers) ListSecrets() http.HandlerFunc {
 			return
 		}
 
-		resp := createListSecretsResponse(secrets)
+		resp := newListSecretsResponse(secrets)
 		err = writeJSON(w, http.StatusOK, resp)
 		if err != nil {
 			writeInternalServerError(w)
@@ -62,7 +64,7 @@ func (h *VaultHandlers) AddSecret() http.HandlerFunc {
 			return
 		}
 
-		secret, err := getSecret(r)
+		secret, err := secretFromRequest(r)
 		if err != nil {
 			writeInternalServerError(w)
 			return
@@ -74,7 +76,7 @@ func (h *VaultHandlers) AddSecret() http.HandlerFunc {
 			return
 		}
 
-		resp := createAddSecretResponse(addedSecret)
+		resp := newAddSecretResponse(addedSecret)
 		err = writeJSON(w, http.StatusCreated, resp)
 		if err != nil {
 			writeInternalServerError(w)
@@ -83,7 +85,47 @@ func (h *VaultHandlers) AddSecret() http.HandlerFunc {
 	})
 }
 
-func getSecret(r *http.Request) (*model.Secret, error) {
+func (h *VaultHandlers) GetSecret() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		key := chi.URLParam(r, "secret")
+		secretID, err := uuid.Parse(key)
+		if err != nil {
+			writeBadRequest(w)
+			return
+		}
+
+		ctx := r.Context()
+		userID, err := utils.UserFromContext(ctx)
+		if err != nil {
+			writeInternalServerError(w)
+			return
+		}
+
+		secret, err := h.service.GetSecret(ctx, secretID, userID)
+		if err != nil {
+			writeInternalServerError(w)
+			return
+		}
+
+		resp := newGetSecretResponse(secret)
+		err = writeJSON(w, http.StatusOK, resp)
+		if err != nil {
+			writeInternalServerError(w)
+			return
+		}
+	})
+}
+
+func newGetSecretResponse(secret *model.Secret) GetSecretResponse {
+	return GetSecretResponse{
+		Secret: Secret{
+			ID:   secret.ID.String(),
+			Data: secret.Data,
+		},
+	}
+}
+
+func secretFromRequest(r *http.Request) (*model.Secret, error) {
 	const op = "get secret"
 
 	var req AddSecretRequest
@@ -113,11 +155,15 @@ func writeJSON(w http.ResponseWriter, statusCode int, v any) error {
 	return nil
 }
 
+func writeBadRequest(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusBadRequest)
+}
+
 func writeInternalServerError(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
-func createListSecretsResponse(secrets []*model.Secret) *ListSecretsResponse {
+func newListSecretsResponse(secrets []*model.Secret) *ListSecretsResponse {
 	resp := &ListSecretsResponse{
 		List: make([]Secret, len(secrets)),
 	}
@@ -130,7 +176,7 @@ func createListSecretsResponse(secrets []*model.Secret) *ListSecretsResponse {
 	return resp
 }
 
-func createAddSecretResponse(secret *model.Secret) *AddSecretResponse {
+func newAddSecretResponse(secret *model.Secret) *AddSecretResponse {
 	return &AddSecretResponse{
 		Secret: Secret{
 			ID: secret.ID.String(),

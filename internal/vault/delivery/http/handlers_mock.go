@@ -7,21 +7,28 @@ import (
 )
 
 type vaultHandlersSpy struct {
-	claims     map[string]interface{}
-	callsCount int
+	claims                map[string]interface{}
+	listSecretsCallsCount int
+	addSecretCallsCount   int
+	getSecretCallsCount   int
 }
 
 func (m *vaultHandlersSpy) ListSecrets() http.HandlerFunc {
-	return m.spy()
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		m.listSecretsCallsCount++
+		_, m.claims, _ = jwtauth.FromContext(r.Context())
+	})
 }
 
 func (m *vaultHandlersSpy) AddSecret() http.HandlerFunc {
-	return m.spy()
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		m.addSecretCallsCount++
+		_, m.claims, _ = jwtauth.FromContext(r.Context())
+	})
 }
 
-func (m *vaultHandlersSpy) spy() http.HandlerFunc {
+func (m *vaultHandlersSpy) GetSecret() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		m.callsCount++
-		_, m.claims, _ = jwtauth.FromContext(r.Context())
+		m.getSecretCallsCount++
 	})
 }

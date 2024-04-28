@@ -20,6 +20,7 @@ func MapVaultRoutes(r chi.Router, h vault.VaultHandlers, cfg config.JWTAuthConfi
 		useJWTAuth(r, jwtAuth)
 
 		r.Get(secretsPath, h.ListSecrets())
+		r.Get(secretsPath+"/{secret}", h.GetSecret())
 	})
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AllowContentType(applicationJSON))

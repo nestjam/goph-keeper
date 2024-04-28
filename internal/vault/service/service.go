@@ -39,3 +39,13 @@ func (s *vaultService) AddSecret(ctx context.Context, secret *model.Secret, user
 	}
 	return addedSecret, nil
 }
+
+func (s *vaultService) GetSecret(ctx context.Context, secretID, userID uuid.UUID) (*model.Secret, error) {
+	const op = "get secret"
+
+	secret, err := s.repo.GetSecret(ctx, secretID, userID)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+	return secret, nil
+}

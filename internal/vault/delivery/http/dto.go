@@ -1,12 +1,12 @@
 package http
 
-type ListSecretsResponse struct {
-	List []Secret `json:"list,omitempty"`
-}
-
 type Secret struct {
 	ID   string `json:"id"`
 	Data string `json:"data,omitempty"`
+}
+
+type ListSecretsResponse struct {
+	List []Secret `json:"list,omitempty"`
 }
 
 type AddSecretRequest struct {
@@ -14,5 +14,9 @@ type AddSecretRequest struct {
 }
 
 type AddSecretResponse struct {
+	Secret Secret `json:"secret"`
+}
+
+type GetSecretResponse struct {
 	Secret Secret `json:"secret"`
 }
