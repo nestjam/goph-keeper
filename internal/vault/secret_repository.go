@@ -11,7 +11,6 @@ import (
 
 var (
 	ErrSecretDoesNotExist = errors.New("secret does not exist")
-	ErrUserDoesNotExist   = errors.New("user does not exist")
 )
 
 type SecretRepository interface {

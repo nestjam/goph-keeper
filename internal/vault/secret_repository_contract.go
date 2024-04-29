@@ -122,7 +122,7 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 
 				_, err := sut.GetSecret(ctx, secretID, userID)
 
-				require.ErrorIs(t, err, ErrUserDoesNotExist)
+				require.ErrorIs(t, err, ErrSecretDoesNotExist)
 			})
 		})
 
@@ -163,7 +163,7 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 
 				err := sut.DeleteSecret(ctx, secretID, userID)
 
-				require.ErrorIs(t, err, ErrUserDoesNotExist)
+				require.NoError(t, err)
 			})
 		})
 	})

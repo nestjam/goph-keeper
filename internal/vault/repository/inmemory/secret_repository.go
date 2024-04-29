@@ -62,7 +62,7 @@ func (r *secretRepository) GetSecret(ctx context.Context, secretID, userID uuid.
 
 	userSecrets, ok := r.userSecrets[userID]
 	if !ok {
-		return nil, vault.ErrUserDoesNotExist
+		return nil, vault.ErrSecretDoesNotExist
 	}
 
 	secret, ok := userSecrets[secretID]
@@ -79,7 +79,7 @@ func (r *secretRepository) DeleteSecret(ctx context.Context, secretID, userID uu
 
 	userSecrets, ok := r.userSecrets[userID]
 	if !ok {
-		return vault.ErrUserDoesNotExist
+		return nil
 	}
 
 	delete(userSecrets, secretID)
