@@ -125,5 +125,46 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 				require.ErrorIs(t, err, ErrUserDoesNotExist)
 			})
 		})
+
+		t.Run("delete secret", func(t *testing.T) {
+			t.Run("delete user secret", func(t *testing.T) {
+				sut, tearDown := c.NewSecretRepository()
+				t.Cleanup(tearDown)
+				secret := &model.Secret{}
+				userID := uuid.New()
+				ctx := context.Background()
+				want, err := sut.AddSecret(ctx, secret, userID)
+				require.NoError(t, err)
+
+				err = sut.DeleteSecret(ctx, want.ID, userID)
+
+				require.NoError(t, err)
+			})
+			t.Run("user does not have the secret (on delete secret)", func(t *testing.T) {
+				sut, tearDown := c.NewSecretRepository()
+				t.Cleanup(tearDown)
+				secret := &model.Secret{}
+				userID := uuid.New()
+				ctx := context.Background()
+				_, err := sut.AddSecret(ctx, secret, userID)
+				require.NoError(t, err)
+				anotherSecretID := uuid.New()
+
+				err = sut.DeleteSecret(ctx, anotherSecretID, userID)
+
+				require.NoError(t, err)
+			})
+			t.Run("user with id does not exist (on delete secret)", func(t *testing.T) {
+				sut, tearDown := c.NewSecretRepository()
+				t.Cleanup(tearDown)
+				userID := uuid.New()
+				ctx := context.Background()
+				secretID := uuid.New()
+
+				err := sut.DeleteSecret(ctx, secretID, userID)
+
+				require.ErrorIs(t, err, ErrUserDoesNotExist)
+			})
+		})
 	})
 }

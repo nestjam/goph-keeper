@@ -73,6 +73,20 @@ func (r *secretRepository) GetSecret(ctx context.Context, secretID, userID uuid.
 	return secret, nil
 }
 
+func (r *secretRepository) DeleteSecret(ctx context.Context, secretID, userID uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	userSecrets, ok := r.userSecrets[userID]
+	if !ok {
+		return vault.ErrUserDoesNotExist
+	}
+
+	delete(userSecrets, secretID)
+
+	return nil
+}
+
 func copySecret(secret *model.Secret) *model.Secret {
 	return &model.Secret{
 		ID:   secret.ID,

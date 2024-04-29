@@ -49,3 +49,13 @@ func (s *vaultService) GetSecret(ctx context.Context, secretID, userID uuid.UUID
 	}
 	return secret, nil
 }
+
+func (s *vaultService) DeleteSecret(ctx context.Context, secretID, userID uuid.UUID) error {
+	const op = "delete secret"
+
+	err := s.repo.DeleteSecret(ctx, secretID, userID)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+	return nil
+}

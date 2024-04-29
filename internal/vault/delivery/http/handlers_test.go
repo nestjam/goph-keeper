@@ -229,6 +229,73 @@ func TestGetSecret(t *testing.T) {
 	})
 }
 
+func TestDeleteSecret(t *testing.T) {
+	config := newConfig()
+
+	t.Run("delete secret", func(t *testing.T) {
+		repo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(repo)
+		sut := NewVaultHandlers(service, config)
+		ctx := context.Background()
+		userID := uuid.New()
+		secret := &model.Secret{}
+		want, err := repo.AddSecret(ctx, secret, userID)
+		require.NoError(t, err)
+		r := newDeleteSecretRequestWithUser(t, want.ID, userID)
+		w := httptest.NewRecorder()
+
+		deleteSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+	t.Run("invalid secret id", func(t *testing.T) {
+		repo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(repo)
+		sut := NewVaultHandlers(service, config)
+		r := newInvalidIDDeleteSecretRequest(t)
+		w := httptest.NewRecorder()
+
+		deleteSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+	t.Run("user not found in context", func(t *testing.T) {
+		repo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(repo)
+		sut := NewVaultHandlers(service, config)
+		secretID := uuid.New()
+		r := newDeleteSecretRequest(t, "", secretID)
+		r = addAuthError(t, r, errors.New("failed"))
+		w := httptest.NewRecorder()
+
+		deleteSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+	t.Run("failed to delete secret", func(t *testing.T) {
+		service := &vaultServiceMock{
+			DeleteSecretFunc: func(ctx context.Context, secretID, userID uuid.UUID) error {
+				return errors.New("failed")
+			},
+		}
+		sut := NewVaultHandlers(service, config)
+		userID := uuid.New()
+		secretID := uuid.New()
+		r := newDeleteSecretRequestWithUser(t, secretID, userID)
+		w := httptest.NewRecorder()
+
+		deleteSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+}
+
+func deleteSecret(sut vault.VaultHandlers, w *httptest.ResponseRecorder, r *http.Request) {
+	router := chi.NewRouter()
+	router.Delete("/{secret}", sut.DeleteSecret())
+	router.ServeHTTP(w, r)
+}
+
 func getSecret(sut vault.VaultHandlers, w *httptest.ResponseRecorder, r *http.Request) {
 	router := chi.NewRouter()
 	router.Get("/{secret}", sut.GetSecret())
@@ -245,12 +312,26 @@ func secretFromResponse(t *testing.T, r io.Reader) Secret {
 	return resp.Secret
 }
 
+func newDeleteSecretRequestWithUser(t *testing.T, secretID, userID uuid.UUID) *http.Request {
+	t.Helper()
+
+	r := newDeleteSecretRequest(t, "", secretID)
+	r = addAuthToken(t, r, userID)
+	return r
+}
+
 func newGetSecretRequestWithUser(t *testing.T, secretID, userID uuid.UUID) *http.Request {
 	t.Helper()
 
 	r := newGetSecretRequest(t, "", secretID)
 	r = addAuthToken(t, r, userID)
 	return r
+}
+
+func newInvalidIDDeleteSecretRequest(t *testing.T) *http.Request {
+	t.Helper()
+
+	return httptest.NewRequest(http.MethodDelete, "/xyz", nil)
 }
 
 func newInvalidIDGetSecretRequest(t *testing.T) *http.Request {

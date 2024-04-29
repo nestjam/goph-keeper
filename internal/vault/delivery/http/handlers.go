@@ -17,6 +17,7 @@ import (
 const (
 	contentTypeHeader = "Content-Type"
 	applicationJSON   = "application/json"
+	secretParam       = "secret"
 )
 
 type VaultHandlers struct {
@@ -87,7 +88,7 @@ func (h *VaultHandlers) AddSecret() http.HandlerFunc {
 
 func (h *VaultHandlers) GetSecret() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		key := chi.URLParam(r, "secret")
+		key := chi.URLParam(r, secretParam)
 		secretID, err := uuid.Parse(key)
 		if err != nil {
 			writeBadRequest(w)
@@ -118,7 +119,27 @@ func (h *VaultHandlers) GetSecret() http.HandlerFunc {
 
 func (h *VaultHandlers) DeleteSecret() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		panic("unimplemented")
+		key := chi.URLParam(r, secretParam)
+		secretID, err := uuid.Parse(key)
+		if err != nil {
+			writeBadRequest(w)
+			return
+		}
+
+		ctx := r.Context()
+		userID, err := utils.UserFromContext(ctx)
+		if err != nil {
+			writeInternalServerError(w)
+			return
+		}
+
+		err = h.service.DeleteSecret(ctx, secretID, userID)
+		if err != nil {
+			writeInternalServerError(w)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
 	})
 }
 
