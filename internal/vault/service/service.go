@@ -11,24 +11,25 @@ import (
 )
 
 type vaultService struct {
-	repo   vault.SecretRepository
-	cipher *model.Cipher
-	key    []byte
+	secretRepo vault.SecretRepository
+	keyring    *keyService
+	rootKey    []byte
 }
 
-func NewVaultService(repo vault.SecretRepository,
+func NewVaultService(secretRepo vault.SecretRepository,
+	keyRepo vault.DataKeyRepository,
 	rootKey []byte) vault.VaultService {
 	return &vaultService{
-		repo:   repo,
-		cipher: model.NewAESGCMCipher(),
-		key:    rootKey,
+		secretRepo: secretRepo,
+		keyring:    NewKeyService(keyRepo, NewKeyRotationConfig()),
+		rootKey:    rootKey,
 	}
 }
 
 func (s *vaultService) ListSecrets(ctx context.Context, userID uuid.UUID) ([]*model.Secret, error) {
 	const op = "list secrets"
 
-	secrets, err := s.repo.ListSecrets(ctx, userID)
+	secrets, err := s.secretRepo.ListSecrets(ctx, userID)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
@@ -39,12 +40,12 @@ func (s *vaultService) ListSecrets(ctx context.Context, userID uuid.UUID) ([]*mo
 func (s *vaultService) AddSecret(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error) {
 	const op = "add secret"
 
-	sealed, err := s.cipher.Seal(secret, s.key)
+	sealed, err := s.keyring.Seal(ctx, secret)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
 
-	added, err := s.repo.AddSecret(ctx, sealed, userID)
+	added, err := s.secretRepo.AddSecret(ctx, sealed, userID)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
@@ -55,12 +56,12 @@ func (s *vaultService) AddSecret(ctx context.Context, secret *model.Secret, user
 func (s *vaultService) GetSecret(ctx context.Context, secretID, userID uuid.UUID) (*model.Secret, error) {
 	const op = "get secret"
 
-	secret, err := s.repo.GetSecret(ctx, secretID, userID)
+	secret, err := s.secretRepo.GetSecret(ctx, secretID, userID)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
 
-	unsealed, err := s.cipher.Unseal(secret, s.key)
+	unsealed, err := s.keyring.Unseal(ctx, secret)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
@@ -71,7 +72,7 @@ func (s *vaultService) GetSecret(ctx context.Context, secretID, userID uuid.UUID
 func (s *vaultService) DeleteSecret(ctx context.Context, secretID, userID uuid.UUID) error {
 	const op = "delete secret"
 
-	err := s.repo.DeleteSecret(ctx, secretID, userID)
+	err := s.secretRepo.DeleteSecret(ctx, secretID, userID)
 	if err != nil {
 		return errors.Wrap(err, op)
 	}

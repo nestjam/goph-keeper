@@ -5,8 +5,10 @@ import (
 	"crypto/cipher"
 	"fmt"
 
-	"github.com/nestjam/goph-keeper/internal/utils"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
+
+	"github.com/nestjam/goph-keeper/internal/utils"
 )
 
 type Cipher struct {
@@ -43,6 +45,7 @@ func (c *Cipher) Unseal(sealed *Secret, key []byte) (unsealed *Secret, err error
 
 	unsealed = sealed.Copy()
 	unsealed.IV = nil
+	unsealed.KeyID = uuid.Nil
 	unsealed.Data, err = open(sealed.Data, sealed.IV, cipher)
 	if err != nil {
 		return nil, errors.Wrap(err, op)

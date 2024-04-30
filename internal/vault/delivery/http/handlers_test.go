@@ -28,11 +28,12 @@ import (
 
 func TestListSecrets(t *testing.T) {
 	config := newConfig()
-	key, _ := utils.GenerateRandomAES256Key()
+	rootKey, _ := utils.GenerateRandomAES256Key()
 
 	t.Run("empty list", func(t *testing.T) {
-		repo := inmemory.NewSecretRepository()
-		service := service.NewVaultService(repo, key)
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		sut := NewVaultHandlers(service, config)
 		userID := uuid.New()
 		r := newListSecretsRequestWithUser(t, userID)
@@ -46,13 +47,14 @@ func TestListSecrets(t *testing.T) {
 		assert.Empty(t, got)
 	})
 	t.Run("secrets", func(t *testing.T) {
-		repo := inmemory.NewSecretRepository()
-		service := service.NewVaultService(repo, key)
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		sut := NewVaultHandlers(service, config)
 		ctx := context.Background()
 		userID := uuid.New()
 		secret := &model.Secret{}
-		s, err := repo.AddSecret(ctx, secret, userID)
+		s, err := secretRepo.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 		r := newListSecretsRequestWithUser(t, userID)
 		w := httptest.NewRecorder()
@@ -67,8 +69,9 @@ func TestListSecrets(t *testing.T) {
 		assert.Equal(t, want, got)
 	})
 	t.Run("user not found in context", func(t *testing.T) {
-		repo := inmemory.NewSecretRepository()
-		service := service.NewVaultService(repo, key)
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		sut := NewVaultHandlers(service, config)
 		r := newListSecretsRequest(t, "/")
 		r = addAuthError(t, r, errors.New("failed"))
@@ -97,11 +100,12 @@ func TestListSecrets(t *testing.T) {
 
 func TestAddSecret(t *testing.T) {
 	config := newConfig()
-	key, _ := utils.GenerateRandomAES256Key()
+	rootKey, _ := utils.GenerateRandomAES256Key()
 
 	t.Run("add secret", func(t *testing.T) {
-		repo := inmemory.NewSecretRepository()
-		service := service.NewVaultService(repo, key)
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		sut := NewVaultHandlers(service, config)
 		const data = "sensitive data"
 		secret := Secret{Data: []byte(data)}
@@ -113,7 +117,7 @@ func TestAddSecret(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 		ctx := context.Background()
-		secrets, err := repo.ListSecrets(ctx, userID)
+		secrets, err := secretRepo.ListSecrets(ctx, userID)
 		require.NoError(t, err)
 		assert.Equal(t, 1, len(secrets))
 		want := secrets[0]
@@ -122,8 +126,9 @@ func TestAddSecret(t *testing.T) {
 		assert.Equal(t, want.ID.String(), resp.Secret.ID)
 	})
 	t.Run("user not found in context", func(t *testing.T) {
-		repo := inmemory.NewSecretRepository()
-		service := service.NewVaultService(repo, key)
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		sut := NewVaultHandlers(service, config)
 		secret := Secret{}
 		r := newAddSecretRequest(t, "/", secret)
@@ -151,8 +156,9 @@ func TestAddSecret(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
 	t.Run("invalid json", func(t *testing.T) {
-		repo := inmemory.NewSecretRepository()
-		service := service.NewVaultService(repo, key)
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		sut := NewVaultHandlers(service, config)
 		userID := uuid.New()
 		r := newInvalidAddSecretRequestWithUser(t, userID)
@@ -166,11 +172,12 @@ func TestAddSecret(t *testing.T) {
 
 func TestGetSecret(t *testing.T) {
 	config := newConfig()
-	key, _ := utils.GenerateRandomAES256Key()
+	rootKey, _ := utils.GenerateRandomAES256Key()
 
 	t.Run("get secret", func(t *testing.T) {
-		repo := inmemory.NewSecretRepository()
-		service := service.NewVaultService(repo, key)
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		sut := NewVaultHandlers(service, config)
 		ctx := context.Background()
 		userID := uuid.New()
@@ -188,8 +195,9 @@ func TestGetSecret(t *testing.T) {
 		assert.Equal(t, secret.Data, got.Data)
 	})
 	t.Run("invalid secret id", func(t *testing.T) {
-		repo := inmemory.NewSecretRepository()
-		service := service.NewVaultService(repo, key)
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		sut := NewVaultHandlers(service, config)
 		r := newInvalidIDGetSecretRequest(t)
 		w := httptest.NewRecorder()
@@ -199,12 +207,13 @@ func TestGetSecret(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 	t.Run("user not found in context", func(t *testing.T) {
-		repo := inmemory.NewSecretRepository()
-		service := service.NewVaultService(repo, key)
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		sut := NewVaultHandlers(service, config)
 		ctx := context.Background()
 		userID := uuid.New()
-		secret, err := repo.AddSecret(ctx, &model.Secret{}, userID)
+		secret, err := secretRepo.AddSecret(ctx, &model.Secret{}, userID)
 		require.NoError(t, err)
 		r := newGetSecretRequest(t, "", secret.ID)
 		r = addAuthError(t, r, errors.New("failed"))
@@ -234,16 +243,17 @@ func TestGetSecret(t *testing.T) {
 
 func TestDeleteSecret(t *testing.T) {
 	config := newConfig()
-	key, _ := utils.GenerateRandomAES256Key()
+	rootKey, _ := utils.GenerateRandomAES256Key()
 
 	t.Run("delete secret", func(t *testing.T) {
-		repo := inmemory.NewSecretRepository()
-		service := service.NewVaultService(repo, key)
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		sut := NewVaultHandlers(service, config)
 		ctx := context.Background()
 		userID := uuid.New()
 		secret := &model.Secret{}
-		want, err := repo.AddSecret(ctx, secret, userID)
+		want, err := secretRepo.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 		r := newDeleteSecretRequestWithUser(t, want.ID, userID)
 		w := httptest.NewRecorder()
@@ -253,8 +263,9 @@ func TestDeleteSecret(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 	t.Run("invalid secret id", func(t *testing.T) {
-		repo := inmemory.NewSecretRepository()
-		service := service.NewVaultService(repo, key)
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		sut := NewVaultHandlers(service, config)
 		r := newInvalidIDDeleteSecretRequest(t)
 		w := httptest.NewRecorder()
@@ -264,8 +275,9 @@ func TestDeleteSecret(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 	t.Run("user not found in context", func(t *testing.T) {
-		repo := inmemory.NewSecretRepository()
-		service := service.NewVaultService(repo, key)
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		sut := NewVaultHandlers(service, config)
 		secretID := uuid.New()
 		r := newDeleteSecretRequest(t, "", secretID)

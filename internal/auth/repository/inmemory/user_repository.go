@@ -38,6 +38,7 @@ func (r *userRepository) Register(ctx context.Context, user *model.User) (*model
 		Password: user.Password,
 	}
 	r.users[createdUser.Email] = createdUser
+
 	return createdUser, nil
 }
 
@@ -49,8 +50,8 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*model.
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if foundUser, ok := r.users[email]; ok {
-		return foundUser, nil
+	if user, ok := r.users[email]; ok {
+		return user, nil
 	}
 
 	return nil, auth.ErrUserIsNotRegisteredAtEmail
