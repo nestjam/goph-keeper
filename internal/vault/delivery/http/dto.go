@@ -2,7 +2,7 @@ package http
 
 type Secret struct {
 	ID   string `json:"id"`
-	Data string `json:"data,omitempty"`
+	Data []byte `json:"data,omitempty"`
 }
 
 type ListSecretsResponse struct {

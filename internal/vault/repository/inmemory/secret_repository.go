@@ -32,8 +32,9 @@ func (r *secretRepository) ListSecrets(ctx context.Context, userID uuid.UUID) ([
 
 	i := 0
 	for _, secret := range userSecrets {
-		secrets[i] = copySecret(secret)
-		secrets[i].Data = ""
+		secrets[i] = secret.Copy()
+		secrets[i].Data = nil
+		secrets[i].IV = nil
 		i++
 	}
 
@@ -44,7 +45,7 @@ func (r *secretRepository) AddSecret(ctx context.Context, s *model.Secret, userI
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	secret := copySecret(s)
+	secret := s.Copy()
 	secret.ID = uuid.New()
 
 	if _, ok := r.userSecrets[userID]; !ok {
@@ -85,11 +86,4 @@ func (r *secretRepository) DeleteSecret(ctx context.Context, secretID, userID uu
 	delete(userSecrets, secretID)
 
 	return nil
-}
-
-func copySecret(secret *model.Secret) *model.Secret {
-	return &model.Secret{
-		ID:   secret.ID,
-		Data: secret.Data,
-	}
 }
