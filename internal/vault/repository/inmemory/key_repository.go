@@ -40,10 +40,6 @@ func (r *dataKeyRepository) GetKey(ctx context.Context) (*model.DataKey, error) 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if r.key == nil {
-		return nil, vault.ErrKeyNotFound
-	}
-
 	return r.key, nil
 }
 

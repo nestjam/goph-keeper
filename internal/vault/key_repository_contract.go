@@ -63,14 +63,15 @@ func (c DataKeyRepositoryContract) Test(t *testing.T) {
 
 		require.ErrorIs(t, err, ErrKeyNotFound)
 	})
-	t.Run("active key no found", func(t *testing.T) {
+	t.Run("active key is not set", func(t *testing.T) {
 		sut, tearDown := c.NewDataKeyRepository()
 		t.Cleanup(tearDown)
 		ctx := context.Background()
 
-		_, err := sut.GetKey(ctx)
+		key, err := sut.GetKey(ctx)
 
-		require.ErrorIs(t, err, ErrKeyNotFound)
+		require.NoError(t, err)
+		assert.Nil(t, key)
 	})
 	t.Run("update key stats", func(t *testing.T) {
 		t.Run("update data size encrypted by key", func(t *testing.T) {

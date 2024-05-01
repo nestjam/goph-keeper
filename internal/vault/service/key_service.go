@@ -44,8 +44,11 @@ func (k *keyService) Seal(ctx context.Context, secret *model.Secret) (*model.Sec
 	const op = "seal"
 
 	key, err := k.keyRepo.GetKey(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
 
-	if errors.Is(err, vault.ErrKeyNotFound) ||
+	if key == nil ||
 		key.EncryptedDataSize >= k.config.EncryptedDataSizeThreshold ||
 		key.EncryptionsCount >= k.config.EncryptionsCountThreshold {
 		newKey, err := model.NewDataKey()

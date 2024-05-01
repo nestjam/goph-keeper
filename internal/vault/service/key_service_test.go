@@ -14,7 +14,7 @@ import (
 	"github.com/nestjam/goph-keeper/internal/vault/repository/inmemory"
 )
 
-func TestKeyringSeal(t *testing.T) {
+func TestKeyService_Seal(t *testing.T) {
 	config := NewKeyRotationConfig()
 
 	t.Run("seal secret data", func(t *testing.T) {
@@ -50,6 +50,20 @@ func TestKeyringSeal(t *testing.T) {
 				return nil, vault.ErrKeyNotFound
 			},
 			RotateKeyFunc: func(ctx context.Context, key *model.DataKey) (*model.DataKey, error) {
+				return nil, errors.New("failed")
+			},
+		}
+		sut := NewKeyService(keyRepo, config)
+		secret := &model.Secret{Data: []byte("data")}
+
+		_, err := sut.Seal(ctx, secret)
+
+		require.Error(t, err)
+	})
+	t.Run("failed to get key", func(t *testing.T) {
+		ctx := context.Background()
+		keyRepo := &keyRepositoryMock{
+			GetKeyFunc: func(ctx context.Context) (*model.DataKey, error) {
 				return nil, errors.New("failed")
 			},
 		}
@@ -120,7 +134,7 @@ func TestKeyringSeal(t *testing.T) {
 	})
 }
 
-func TestKeyringUnseal(t *testing.T) {
+func TestKeyService_Unseal(t *testing.T) {
 	config := NewKeyRotationConfig()
 
 	t.Run("unseal secret data", func(t *testing.T) {
