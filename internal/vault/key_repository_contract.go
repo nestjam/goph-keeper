@@ -82,9 +82,8 @@ func (c DataKeyRepositoryContract) Test(t *testing.T) {
 			key, err = sut.RotateKey(ctx, key)
 			require.NoError(t, err)
 			const want int64 = 100
-			key.EncryptedSize = want
 
-			err = sut.UpdateStats(ctx, key)
+			err = sut.UpdateStats(ctx, key.ID, want)
 
 			require.NoError(t, err)
 			key, err = sut.GetByID(ctx, key.ID)
@@ -99,9 +98,8 @@ func (c DataKeyRepositoryContract) Test(t *testing.T) {
 			key, err := model.NewDataKey()
 			require.NoError(t, err)
 			const want int64 = 100
-			key.EncryptedSize = want
 
-			err = sut.UpdateStats(ctx, key)
+			err = sut.UpdateStats(ctx, key.ID, want)
 
 			require.ErrorIs(t, err, ErrKeyNotFound)
 		})

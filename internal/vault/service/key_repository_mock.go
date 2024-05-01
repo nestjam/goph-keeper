@@ -12,7 +12,7 @@ type keyRepositoryMock struct {
 	RotateKeyFunc   func(ctx context.Context, key *model.DataKey) (*model.DataKey, error)
 	GetKeyFunc      func(ctx context.Context) (*model.DataKey, error)
 	GetByIDFunc     func(ctx context.Context, id uuid.UUID) (*model.DataKey, error)
-	UpdateStatsFunc func(ctx context.Context, key *model.DataKey) error
+	UpdateStatsFunc func(ctx context.Context, id uuid.UUID, dataSize int64) error
 }
 
 func (m *keyRepositoryMock) RotateKey(ctx context.Context, key *model.DataKey) (*model.DataKey, error) {
@@ -27,6 +27,6 @@ func (m *keyRepositoryMock) GetByID(ctx context.Context, id uuid.UUID) (*model.D
 	return m.GetByIDFunc(ctx, id)
 }
 
-func (m *keyRepositoryMock) UpdateStats(ctx context.Context, key *model.DataKey) error {
-	return m.UpdateStatsFunc(ctx, key)
+func (m *keyRepositoryMock) UpdateStats(ctx context.Context, id uuid.UUID, dataSize int64) error {
+	return m.UpdateStatsFunc(ctx, id, dataSize)
 }

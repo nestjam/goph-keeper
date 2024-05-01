@@ -88,7 +88,7 @@ func TestKeyringSeal(t *testing.T) {
 			RotateKeyFunc: func(ctx context.Context, key *model.DataKey) (*model.DataKey, error) {
 				return key, nil
 			},
-			UpdateStatsFunc: func(ctx context.Context, key *model.DataKey) error {
+			UpdateStatsFunc: func(ctx context.Context, id uuid.UUID, dataSize int64) error {
 				return errors.New("failed")
 			},
 		}

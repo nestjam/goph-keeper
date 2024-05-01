@@ -58,16 +58,16 @@ func (r *dataKeyRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.D
 	return nil, vault.ErrKeyNotFound
 }
 
-func (r *dataKeyRepository) UpdateStats(ctx context.Context, key *model.DataKey) error {
+func (r *dataKeyRepository) UpdateStats(ctx context.Context, id uuid.UUID, dataSize int64) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	stored, ok := r.keys[key.ID]
+	stored, ok := r.keys[id]
 	if !ok {
 		return vault.ErrKeyNotFound
 	}
 
-	stored.EncryptedSize = key.EncryptedSize
+	stored.EncryptedSize += dataSize
 
 	return nil
 }

@@ -60,8 +60,8 @@ func (k *keyService) Seal(ctx context.Context, secret *model.Secret) (*model.Sec
 	}
 	sealed.KeyID = key.ID
 
-	key.EncryptedSize += int64(len(secret.Data))
-	err = k.keyRepo.UpdateStats(ctx, key)
+	dataSize := int64(len(secret.Data))
+	err = k.keyRepo.UpdateStats(ctx, key.ID, dataSize)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}

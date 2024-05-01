@@ -17,5 +17,5 @@ type DataKeyRepository interface {
 	RotateKey(ctx context.Context, key *model.DataKey) (*model.DataKey, error)
 	GetKey(ctx context.Context) (*model.DataKey, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*model.DataKey, error)
-	UpdateStats(ctx context.Context, key *model.DataKey) error
+	UpdateStats(ctx context.Context, id uuid.UUID, dataSize int64) error
 }
