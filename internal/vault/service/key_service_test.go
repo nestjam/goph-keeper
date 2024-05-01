@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/nestjam/goph-keeper/internal/utils"
 	"github.com/nestjam/goph-keeper/internal/vault"
 	"github.com/nestjam/goph-keeper/internal/vault/model"
 	"github.com/nestjam/goph-keeper/internal/vault/repository/inmemory"
@@ -16,12 +17,13 @@ import (
 
 func TestKeyService_Seal(t *testing.T) {
 	config := NewKeyRotationConfig()
+	rootKey := randomMasterKey(t)
 
 	t.Run("seal secret data", func(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
-		key := setKey(t, ctx, keyRepo)
-		sut := NewKeyService(keyRepo, config)
+		key := setKey(t, ctx, rootKey, keyRepo)
+		sut := NewKeyService(keyRepo, config, rootKey)
 		secret := &model.Secret{Data: []byte("data")}
 
 		got, err := sut.Seal(ctx, secret)
@@ -33,7 +35,7 @@ func TestKeyService_Seal(t *testing.T) {
 	t.Run("data key is not set", func(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
-		sut := NewKeyService(keyRepo, config)
+		sut := NewKeyService(keyRepo, config, rootKey)
 		secret := &model.Secret{Data: []byte("data")}
 
 		got, err := sut.Seal(ctx, secret)
@@ -53,7 +55,7 @@ func TestKeyService_Seal(t *testing.T) {
 				return nil, errors.New("failed")
 			},
 		}
-		sut := NewKeyService(keyRepo, config)
+		sut := NewKeyService(keyRepo, config, rootKey)
 		secret := &model.Secret{Data: []byte("data")}
 
 		_, err := sut.Seal(ctx, secret)
@@ -67,7 +69,7 @@ func TestKeyService_Seal(t *testing.T) {
 				return nil, errors.New("failed")
 			},
 		}
-		sut := NewKeyService(keyRepo, config)
+		sut := NewKeyService(keyRepo, config, rootKey)
 		secret := &model.Secret{Data: []byte("data")}
 
 		_, err := sut.Seal(ctx, secret)
@@ -78,7 +80,7 @@ func TestKeyService_Seal(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
 		config.EncryptedDataSizeThreshold = 5
-		sut := NewKeyService(keyRepo, config)
+		sut := NewKeyService(keyRepo, config, rootKey)
 		secret := &model.Secret{Data: []byte("12345")} // 5 bytes
 		sealed, err := sut.Seal(ctx, secret)
 		require.NoError(t, err)
@@ -97,7 +99,7 @@ func TestKeyService_Seal(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
 		config.EncryptionsCountThreshold = 1
-		sut := NewKeyService(keyRepo, config)
+		sut := NewKeyService(keyRepo, config, rootKey)
 		secret := &model.Secret{}
 		sealed, err := sut.Seal(ctx, secret)
 		require.NoError(t, err)
@@ -125,7 +127,7 @@ func TestKeyService_Seal(t *testing.T) {
 				return errors.New("failed")
 			},
 		}
-		sut := NewKeyService(keyRepo, config)
+		sut := NewKeyService(keyRepo, config, rootKey)
 		secret := &model.Secret{Data: []byte("data")}
 
 		_, err := sut.Seal(ctx, secret)
@@ -136,12 +138,13 @@ func TestKeyService_Seal(t *testing.T) {
 
 func TestKeyService_Unseal(t *testing.T) {
 	config := NewKeyRotationConfig()
+	rootKey := randomMasterKey(t)
 
 	t.Run("unseal secret data", func(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
-		_ = setKey(t, ctx, keyRepo)
-		sut := NewKeyService(keyRepo, config)
+		_ = setKey(t, ctx, rootKey, keyRepo)
+		sut := NewKeyService(keyRepo, config, rootKey)
 		want := &model.Secret{Data: []byte("data")}
 		secret, err := sut.Seal(ctx, want)
 		require.NoError(t, err)
@@ -154,7 +157,7 @@ func TestKeyService_Unseal(t *testing.T) {
 	t.Run("key not found by id", func(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
-		sut := NewKeyService(keyRepo, config)
+		sut := NewKeyService(keyRepo, config, rootKey)
 		secret := &model.Secret{KeyID: uuid.New()}
 
 		_, err := sut.Unseal(ctx, secret)
@@ -163,12 +166,22 @@ func TestKeyService_Unseal(t *testing.T) {
 	})
 }
 
-func setKey(t *testing.T, ctx context.Context, keyRepo vault.DataKeyRepository) *model.DataKey {
+func setKey(t *testing.T, ctx context.Context, rk *model.MasterKey, repo vault.DataKeyRepository) *model.DataKey {
 	t.Helper()
 
 	key, _ := model.NewDataKey()
-	key, err := keyRepo.RotateKey(ctx, key)
+	key, err := rk.Seal(key)
+	require.NoError(t, err)
+	key, err = repo.RotateKey(ctx, key)
 	require.NoError(t, err)
 
 	return key
+}
+
+func randomMasterKey(t *testing.T) *model.MasterKey {
+	t.Helper()
+
+	key, err := utils.GenerateRandomAES256Key()
+	require.NoError(t, err)
+	return model.NewMasterKey(key)
 }

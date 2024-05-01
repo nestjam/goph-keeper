@@ -28,7 +28,7 @@ import (
 
 func TestListSecrets(t *testing.T) {
 	config := newConfig()
-	rootKey, _ := utils.GenerateRandomAES256Key()
+	rootKey := randomMasterKey(t)
 
 	t.Run("empty list", func(t *testing.T) {
 		keyRepo := inmemory.NewDataKeyRepository()
@@ -100,7 +100,7 @@ func TestListSecrets(t *testing.T) {
 
 func TestAddSecret(t *testing.T) {
 	config := newConfig()
-	rootKey, _ := utils.GenerateRandomAES256Key()
+	rootKey := randomMasterKey(t)
 
 	t.Run("add secret", func(t *testing.T) {
 		keyRepo := inmemory.NewDataKeyRepository()
@@ -172,7 +172,7 @@ func TestAddSecret(t *testing.T) {
 
 func TestGetSecret(t *testing.T) {
 	config := newConfig()
-	rootKey, _ := utils.GenerateRandomAES256Key()
+	rootKey := randomMasterKey(t)
 
 	t.Run("get secret", func(t *testing.T) {
 		keyRepo := inmemory.NewDataKeyRepository()
@@ -243,7 +243,7 @@ func TestGetSecret(t *testing.T) {
 
 func TestDeleteSecret(t *testing.T) {
 	config := newConfig()
-	rootKey, _ := utils.GenerateRandomAES256Key()
+	rootKey := randomMasterKey(t)
 
 	t.Run("delete secret", func(t *testing.T) {
 		keyRepo := inmemory.NewDataKeyRepository()
@@ -437,4 +437,12 @@ func assertContentType(t *testing.T, want string, r *httptest.ResponseRecorder) 
 	t.Helper()
 
 	assert.Equal(t, want, r.Header().Get(contentTypeHeader))
+}
+
+func randomMasterKey(t *testing.T) *model.MasterKey {
+	t.Helper()
+
+	key, err := utils.GenerateRandomAES256Key()
+	require.NoError(t, err)
+	return model.NewMasterKey(key)
 }

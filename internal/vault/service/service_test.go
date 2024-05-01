@@ -19,7 +19,7 @@ func TestAddSecret(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
 		secretRepo := inmemory.NewSecretRepository()
-		rootKey, _ := utils.GenerateRandomAES256Key()
+		rootKey := randomMasterKey(t)
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
 		secret := &model.Secret{Data: []byte("text")}
 		userID := uuid.New()
@@ -34,18 +34,15 @@ func TestAddSecret(t *testing.T) {
 	t.Run("invalid data key", func(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
-		const keySize = 8 // should be 32
-		key, _ := utils.GenerateRandom(keySize)
-		dataKey := &model.DataKey{Key: key}
-		_, err := keyRepo.RotateKey(ctx, dataKey)
-		require.NoError(t, err)
+		rootKey := randomMasterKey(t)
+		setInvalidDataKey(t, ctx, rootKey, keyRepo)
 		secretRepo := inmemory.NewSecretRepository()
-		rootKey, _ := utils.GenerateRandomAES256Key()
+
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
 		secret := &model.Secret{}
 		userID := uuid.New()
 
-		_, err = sut.AddSecret(ctx, secret, userID)
+		_, err := sut.AddSecret(ctx, secret, userID)
 
 		require.Error(t, err)
 	})
@@ -56,7 +53,7 @@ func TestGetSecret(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
 		secretRepo := inmemory.NewSecretRepository()
-		rootKey, _ := utils.GenerateRandomAES256Key()
+		rootKey := randomMasterKey(t)
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
 		secret := &model.Secret{Data: []byte("text")}
 		wantData := secret.Data
@@ -75,7 +72,7 @@ func TestGetSecret(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
 		secretRepo := inmemory.NewSecretRepository()
-		rootKey, _ := utils.GenerateRandomAES256Key()
+		rootKey := randomMasterKey(t)
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
 		secret := &model.Secret{
 			Data:  []byte("text"),
@@ -96,7 +93,7 @@ func TestDeleteSecret(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
 		secretRepo := inmemory.NewSecretRepository()
-		rootKey, _ := utils.GenerateRandomAES256Key()
+		rootKey := randomMasterKey(t)
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
 		secret := &model.Secret{}
 		userID := uuid.New()
@@ -117,7 +114,7 @@ func TestDeleteSecret(t *testing.T) {
 				return errors.New("failed")
 			},
 		}
-		rootKey, _ := utils.GenerateRandomAES256Key()
+		rootKey := randomMasterKey(t)
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
 		userID := uuid.New()
 		secretID := uuid.New()
@@ -133,7 +130,7 @@ func TestListSecrets(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
 		secretRepo := inmemory.NewSecretRepository()
-		rootKey, _ := utils.GenerateRandomAES256Key()
+		rootKey := randomMasterKey(t)
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
 		userID := uuid.New()
 		secret := &model.Secret{}
@@ -159,7 +156,7 @@ func TestListSecrets(t *testing.T) {
 				return nil, errors.New("failed")
 			},
 		}
-		rootKey, _ := utils.GenerateRandomAES256Key()
+		rootKey := randomMasterKey(t)
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
 		userID := uuid.New()
 
@@ -167,4 +164,16 @@ func TestListSecrets(t *testing.T) {
 
 		require.Error(t, err)
 	})
+}
+
+func setInvalidDataKey(t *testing.T, ctx context.Context, rootKey *model.MasterKey, keyRepo vault.DataKeyRepository) {
+	t.Helper()
+
+	const keySize = 8 // should be 32
+	key, _ := utils.GenerateRandom(keySize)
+	dataKey := &model.DataKey{Key: key}
+	dataKey, err := rootKey.Seal(dataKey)
+	require.NoError(t, err)
+	_, err = keyRepo.RotateKey(ctx, dataKey)
+	require.NoError(t, err)
 }

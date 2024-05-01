@@ -29,14 +29,16 @@ func NewKeyRotationConfig() KeyRotationConfig {
 type keyService struct {
 	keyRepo vault.DataKeyRepository
 	cipher  *model.SecretCipher
+	rootKey *model.MasterKey
 	config  KeyRotationConfig
 }
 
-func NewKeyService(keyRepo vault.DataKeyRepository, config KeyRotationConfig) *keyService {
+func NewKeyService(keyRepo vault.DataKeyRepository, config KeyRotationConfig, rootKey *model.MasterKey) *keyService {
 	return &keyService{
 		keyRepo: keyRepo,
 		cipher:  model.NewSecretCipher(),
 		config:  config,
+		rootKey: rootKey,
 	}
 }
 
@@ -51,15 +53,15 @@ func (k *keyService) Seal(ctx context.Context, secret *model.Secret) (*model.Sec
 	if key == nil ||
 		key.EncryptedDataSize >= k.config.EncryptedDataSizeThreshold ||
 		key.EncryptionsCount >= k.config.EncryptionsCountThreshold {
-		newKey, err := model.NewDataKey()
+		key, err = k.rotateKey(ctx)
 		if err != nil {
 			return nil, errors.Wrap(err, op)
 		}
+	}
 
-		key, err = k.keyRepo.RotateKey(ctx, newKey)
-		if err != nil {
-			return nil, errors.Wrap(err, op)
-		}
+	key, err = k.rootKey.Unseal(key)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
 	}
 
 	sealed, err := k.cipher.Seal(secret, key)
@@ -76,10 +78,36 @@ func (k *keyService) Seal(ctx context.Context, secret *model.Secret) (*model.Sec
 	return sealed, nil
 }
 
+func (k *keyService) rotateKey(ctx context.Context) (*model.DataKey, error) {
+	const op = "rotate data key"
+
+	key, err := model.NewDataKey()
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	key, err = k.rootKey.Seal(key)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	key, err = k.keyRepo.RotateKey(ctx, key)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	return key, nil
+}
+
 func (k *keyService) Unseal(ctx context.Context, secret *model.Secret) (*model.Secret, error) {
 	const op = "unseal"
 
 	key, err := k.keyRepo.GetByID(ctx, secret.KeyID)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	key, err = k.rootKey.Unseal(key)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}

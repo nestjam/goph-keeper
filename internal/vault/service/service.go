@@ -13,16 +13,14 @@ import (
 type vaultService struct {
 	secretRepo vault.SecretRepository
 	keyring    *keyService
-	rootKey    []byte
 }
 
 func NewVaultService(secretRepo vault.SecretRepository,
 	keyRepo vault.DataKeyRepository,
-	rootKey []byte) vault.VaultService {
+	rootKey *model.MasterKey) vault.VaultService {
 	return &vaultService{
 		secretRepo: secretRepo,
-		keyring:    NewKeyService(keyRepo, NewKeyRotationConfig()),
-		rootKey:    rootKey,
+		keyring:    NewKeyService(keyRepo, NewKeyRotationConfig(), rootKey),
 	}
 }
 
