@@ -37,3 +37,37 @@ func (k *DataKey) Copy() *DataKey {
 		IV:                k.IV,
 	}
 }
+
+func (k *DataKey) Seal(unsealed *Secret) (*Secret, error) {
+	const op = "seal"
+
+	cipher := utils.NewBlockCipher(k.Key)
+	ciphertext, iv, err := cipher.Seal(unsealed.Data)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	sealed := unsealed.Copy()
+	sealed.Data = ciphertext
+	sealed.IV = iv
+	sealed.KeyID = k.ID
+
+	return sealed, nil
+}
+
+func (k *DataKey) Unseal(sealed *Secret) (unsealed *Secret, err error) {
+	const op = "unseal"
+
+	cipher := utils.NewBlockCipher(k.Key)
+	plaintext, err := cipher.Unseal(sealed.Data, sealed.IV)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	unsealed = sealed.Copy()
+	unsealed.IV = nil
+	unsealed.KeyID = uuid.Nil
+	unsealed.Data = plaintext
+
+	return unsealed, nil
+}
