@@ -147,7 +147,7 @@ func newGetSecretResponse(secret *model.Secret) GetSecretResponse {
 	return GetSecretResponse{
 		Secret: Secret{
 			ID:   secret.ID.String(),
-			Data: secret.Data,
+			Data: string(secret.Data),
 		},
 	}
 }
@@ -163,7 +163,7 @@ func secretFromRequest(r *http.Request) (*model.Secret, error) {
 	}
 
 	secret := &model.Secret{
-		Data: req.Secret.Data,
+		Data: []byte(req.Secret.Data),
 	}
 	return secret, nil
 }

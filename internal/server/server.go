@@ -5,15 +5,19 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
+
+	"github.com/nestjam/goph-keeper/internal/vault/model"
 )
 
 type Server struct {
+	rootKey *model.MasterKey
 	baseURL string
 }
 
-func New(baseURL string) *Server {
+func New(baseURL, rootKey string) *Server {
 	return &Server{
 		baseURL: baseURL,
+		rootKey: model.NewMasterKey([]byte(rootKey)),
 	}
 }
 

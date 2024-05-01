@@ -1,8 +1,8 @@
 package http
 
 type Secret struct {
-	ID   string `json:"id"`
-	Data []byte `json:"data,omitempty"`
+	ID   string `json:"id,omitempty"`
+	Data string `json:"data,omitempty"`
 }
 
 type ListSecretsResponse struct {

@@ -108,7 +108,7 @@ func TestAddSecret(t *testing.T) {
 		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		sut := NewVaultHandlers(service, config)
 		const data = "sensitive data"
-		secret := Secret{Data: []byte(data)}
+		secret := Secret{Data: data}
 		userID := uuid.New()
 		r := newAddSecretRequestWithUser(t, secret, userID)
 		w := httptest.NewRecorder()
@@ -181,7 +181,8 @@ func TestGetSecret(t *testing.T) {
 		sut := NewVaultHandlers(service, config)
 		ctx := context.Background()
 		userID := uuid.New()
-		secret := &model.Secret{Data: []byte("data")}
+		const data = "data"
+		secret := &model.Secret{Data: []byte(data)}
 		added, err := service.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 		r := newGetSecretRequestWithUser(t, added.ID, userID)
@@ -190,9 +191,9 @@ func TestGetSecret(t *testing.T) {
 		getSecret(sut, w, r)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		got := secretFromResponse(t, w.Body)
-		assert.Equal(t, added.ID.String(), got.ID)
-		assert.Equal(t, secret.Data, got.Data)
+		resp := secretFromResponse(t, w.Body)
+		assert.Equal(t, added.ID.String(), resp.ID)
+		assert.Equal(t, data, resp.Data)
 	})
 	t.Run("invalid secret id", func(t *testing.T) {
 		keyRepo := inmemory.NewDataKeyRepository()

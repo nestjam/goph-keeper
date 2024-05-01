@@ -7,21 +7,30 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	httpAuth "github.com/nestjam/goph-keeper/internal/auth/delivery/http"
-	"github.com/nestjam/goph-keeper/internal/auth/repository/inmemory"
-	"github.com/nestjam/goph-keeper/internal/auth/service"
+	repoAuth "github.com/nestjam/goph-keeper/internal/auth/repository/inmemory"
+	serviceAuth "github.com/nestjam/goph-keeper/internal/auth/service"
 	"github.com/nestjam/goph-keeper/internal/config"
+	httpVault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
+	repoVault "github.com/nestjam/goph-keeper/internal/vault/repository/inmemory"
+	serviceVault "github.com/nestjam/goph-keeper/internal/vault/service"
 )
 
 func (s *Server) mapHandlers() http.Handler {
-	config := config.JWTAuthConfig{
+	jwtAuthConfig := config.JWTAuthConfig{
 		SignKey:       "supersecret",
 		TokenExpiryIn: time.Hour,
 	}
-	authRepo := inmemory.NewUserRepository()
-	authService := service.NewAuthService(authRepo)
-	authHandlers := httpAuth.NewAuthHandlers(authService, config)
+	authRepo := repoAuth.NewUserRepository()
+	authService := serviceAuth.NewAuthService(authRepo)
+	authHandlers := httpAuth.NewAuthHandlers(authService, jwtAuthConfig)
+
+	secretRepo := repoVault.NewSecretRepository()
+	keyRepo := repoVault.NewDataKeyRepository()
+	vaultService := serviceVault.NewVaultService(secretRepo, keyRepo, s.rootKey)
+	vaultHandlers := httpVault.NewVaultHandlers(vaultService, jwtAuthConfig)
 
 	r := chi.NewRouter()
 	httpAuth.MapAuthRoutes(r, authHandlers)
+	httpVault.MapVaultRoutes(r, vaultHandlers, jwtAuthConfig)
 	return r
 }

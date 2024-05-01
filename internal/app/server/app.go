@@ -16,9 +16,12 @@ func NewApp() *app {
 
 func (a *app) Run(ctx context.Context) error {
 	const op = "run app"
-	const baseURL = "localhost:8080"
+	const (
+		baseURL = "localhost:8080"
+		rootKey = "N3SaEN8k2z3?DCf@4&8j+Yc92pTrFt6W"
+	)
 
-	s := server.New(baseURL)
+	s := server.New(baseURL, rootKey)
 
 	if err := s.Run(ctx); err != nil {
 		return errors.Wrap(err, op)
