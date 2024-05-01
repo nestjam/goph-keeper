@@ -19,16 +19,15 @@ func NewMasterKey(key []byte) *MasterKey {
 func (k *MasterKey) Seal(dataKey *DataKey) (*DataKey, error) {
 	const op = "seal"
 
-	cipher, err := newBlockCipher(k.key)
+	cipher := utils.NewBlockCipher(k.key)
+	ciphertext, iv, err := cipher.Seal(dataKey.Key)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
 
-	nonce, _ := utils.GenerateRandom(cipher.NonceSize())
-
 	sealed := dataKey.Copy()
-	sealed.Key = cipher.Seal(nil, nonce, dataKey.Key, nil)
-	sealed.IV = nonce
+	sealed.Key = ciphertext
+	sealed.IV = iv
 
 	return sealed, nil
 }
@@ -36,17 +35,15 @@ func (k *MasterKey) Seal(dataKey *DataKey) (*DataKey, error) {
 func (k *MasterKey) Unseal(dataKey *DataKey) (*DataKey, error) {
 	const op = "unseal"
 
-	cipher, err := newBlockCipher(k.key)
+	cipher := utils.NewBlockCipher(k.key)
+	plaintext, err := cipher.Unseal(dataKey.Key, dataKey.IV)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
 
 	unsealed := dataKey.Copy()
 	unsealed.IV = nil
-	unsealed.Key, err = open(dataKey.Key, dataKey.IV, cipher)
-	if err != nil {
-		return nil, errors.Wrap(err, op)
-	}
+	unsealed.Key = plaintext
 
 	return unsealed, nil
 }
