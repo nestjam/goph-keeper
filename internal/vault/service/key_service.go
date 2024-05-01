@@ -59,11 +59,10 @@ func (k *keyService) Seal(ctx context.Context, secret *model.Secret) (*model.Sec
 		}
 	}
 
-	sealed, err := k.cipher.Seal(secret, key.Key)
+	sealed, err := k.cipher.Seal(secret, key)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
-	sealed.KeyID = key.ID
 
 	dataSize := int64(len(secret.Data))
 	err = k.keyRepo.UpdateStats(ctx, key.ID, dataSize)
@@ -77,12 +76,12 @@ func (k *keyService) Seal(ctx context.Context, secret *model.Secret) (*model.Sec
 func (k *keyService) Unseal(ctx context.Context, secret *model.Secret) (*model.Secret, error) {
 	const op = "unseal"
 
-	dataKey, err := k.keyRepo.GetByID(ctx, secret.KeyID)
+	key, err := k.keyRepo.GetByID(ctx, secret.KeyID)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
 
-	unsealed, err := k.cipher.Unseal(secret, dataKey.Key)
+	unsealed, err := k.cipher.Unseal(secret, key)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}

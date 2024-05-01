@@ -28,9 +28,6 @@ func TestAddSecret(t *testing.T) {
 		stored, err := secretRepo.GetSecret(ctx, got.ID, userID)
 		require.NoError(t, err)
 		assert.Equal(t, stored.ID, got.ID)
-		assert.NotNil(t, stored.IV)
-		dataKey, _ := keyRepo.GetKey(ctx)
-		assert.Equal(t, dataKey.ID, got.KeyID)
 	})
 	t.Run("invalid data key", func(t *testing.T) {
 		ctx := context.Background()
@@ -71,8 +68,6 @@ func TestGetSecret(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, wantID, got.ID)
 		assert.Equal(t, wantData, got.Data)
-		assert.Nil(t, got.IV)
-		assert.Equal(t, uuid.Nil, got.KeyID)
 	})
 	t.Run("key not found", func(t *testing.T) {
 		ctx := context.Background()

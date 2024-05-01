@@ -1,7 +1,6 @@
 package model
 
 import (
-	"crypto/aes"
 	"testing"
 
 	"github.com/google/uuid"
@@ -11,13 +10,12 @@ import (
 	"github.com/nestjam/goph-keeper/internal/utils"
 )
 
-const aes256KeySize = 2 * aes.BlockSize
-
 func TestSeal(t *testing.T) {
 	t.Run("seal and unseal data", func(t *testing.T) {
 		const text = `Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
 sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
-		key, err := utils.GenerateRandom(aes256KeySize)
+		key, err := NewDataKey()
+		key.ID = uuid.New()
 		require.NoError(t, err)
 		want := &Secret{
 			ID:   uuid.New(),
@@ -26,12 +24,18 @@ sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
 		sut := NewAESGCMCipher()
 
 		sealed, err := sut.Seal(want, key)
-		require.NoError(t, err)
 
-		got, err := sut.Unseal(sealed, key)
 		require.NoError(t, err)
+		assert.Equal(t, key.ID, sealed.KeyID)
+		assert.NotNil(t, sealed.IV)
 
-		assert.Equal(t, want, got)
+		unsealed, err := sut.Unseal(sealed, key)
+
+		require.NoError(t, err)
+		assert.Equal(t, uuid.Nil, unsealed.KeyID)
+		assert.Nil(t, unsealed.IV)
+
+		assert.Equal(t, want, unsealed)
 	})
 	t.Run("seal with invalid key size", func(t *testing.T) {
 		want := &Secret{
@@ -42,13 +46,14 @@ sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
 		const size = 8
 		key, err := utils.GenerateRandom(size)
 		require.NoError(t, err)
+		dataKey := DataKey{Key: key}
 
-		_, err = sut.Seal(want, key)
+		_, err = sut.Seal(want, &dataKey)
 
 		require.Error(t, err)
 	})
 	t.Run("seal empty data", func(t *testing.T) {
-		key, err := utils.GenerateRandom(aes256KeySize)
+		key, err := NewDataKey()
 		require.NoError(t, err)
 		secret := &Secret{
 			ID:   uuid.New(),
@@ -72,8 +77,9 @@ func TestUnseal(t *testing.T) {
 		const size = 8
 		key, err := utils.GenerateRandom(size)
 		require.NoError(t, err)
+		dataKey := DataKey{Key: key}
 
-		_, err = sut.Unseal(secret, key)
+		_, err = sut.Unseal(secret, &dataKey)
 
 		require.Error(t, err)
 	})
@@ -83,7 +89,7 @@ func TestUnseal(t *testing.T) {
 			Data: []byte("invalid data"),
 		}
 		sut := NewAESGCMCipher()
-		key, err := utils.GenerateRandom(aes256KeySize)
+		key, err := NewDataKey()
 		require.NoError(t, err)
 
 		_, err = sut.Unseal(secret, key)

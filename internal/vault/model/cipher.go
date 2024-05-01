@@ -18,10 +18,10 @@ func NewAESGCMCipher() *Cipher {
 	return &Cipher{}
 }
 
-func (c *Cipher) Seal(unsealed *Secret, key []byte) (*Secret, error) {
+func (c *Cipher) Seal(unsealed *Secret, dataKey *DataKey) (*Secret, error) {
 	const op = "seal"
 
-	cipher, err := newBlockCipher(key)
+	cipher, err := newBlockCipher(dataKey.Key)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
@@ -31,14 +31,15 @@ func (c *Cipher) Seal(unsealed *Secret, key []byte) (*Secret, error) {
 	sealed := unsealed.Copy()
 	sealed.Data = cipher.Seal(nil, nonce, unsealed.Data, nil)
 	sealed.IV = nonce
+	sealed.KeyID = dataKey.ID
 
 	return sealed, nil
 }
 
-func (c *Cipher) Unseal(sealed *Secret, key []byte) (unsealed *Secret, err error) {
+func (c *Cipher) Unseal(sealed *Secret, dataKey *DataKey) (unsealed *Secret, err error) {
 	const op = "unseal"
 
-	cipher, err := newBlockCipher(key)
+	cipher, err := newBlockCipher(dataKey.Key)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
