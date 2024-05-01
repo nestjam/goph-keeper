@@ -77,19 +77,30 @@ func (c DataKeyRepositoryContract) Test(t *testing.T) {
 			sut, tearDown := c.NewDataKeyRepository()
 			t.Cleanup(tearDown)
 			ctx := context.Background()
-			key, err := model.NewDataKey()
+			key, _ := model.NewDataKey()
+			key, err := sut.RotateKey(ctx, key)
 			require.NoError(t, err)
-			key, err = sut.RotateKey(ctx, key)
-			require.NoError(t, err)
-			const want int64 = 100
+			const (
+				dataSize              int64 = 100
+				wantEncryptionsCount        = 2
+				wantEncryptedDataSize int64 = 200
+			)
 
-			err = sut.UpdateStats(ctx, key.ID, want)
+			err = sut.UpdateStats(ctx, key.ID, dataSize)
 
 			require.NoError(t, err)
 			key, err = sut.GetByID(ctx, key.ID)
 			require.NoError(t, err)
-			got := key.EncryptedSize
-			assert.Equal(t, want, got)
+			assert.Equal(t, dataSize, key.EncryptedDataSize)
+			assert.Equal(t, 1, key.EncryptionsCount)
+
+			err = sut.UpdateStats(ctx, key.ID, dataSize)
+
+			require.NoError(t, err)
+			key, err = sut.GetByID(ctx, key.ID)
+			require.NoError(t, err)
+			assert.Equal(t, wantEncryptedDataSize, key.EncryptedDataSize)
+			assert.Equal(t, wantEncryptionsCount, key.EncryptionsCount)
 		})
 		t.Run("key not found", func(t *testing.T) {
 			sut, tearDown := c.NewDataKeyRepository()

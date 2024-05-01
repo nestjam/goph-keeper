@@ -60,10 +60,10 @@ func TestKeyringSeal(t *testing.T) {
 
 		require.Error(t, err)
 	})
-	t.Run("rotate key after n bytes", func(t *testing.T) {
+	t.Run("rotate key after n bytes are encrypted", func(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
-		config.EncryptedSizeThreshold = 5
+		config.EncryptedDataSizeThreshold = 5
 		sut := NewKeyService(keyRepo, config)
 		secret := &model.Secret{Data: []byte("12345")} // 5 bytes
 		sealed, err := sut.Seal(ctx, secret)
@@ -71,6 +71,25 @@ func TestKeyringSeal(t *testing.T) {
 		keyID := sealed.KeyID
 
 		secret = &model.Secret{Data: []byte("")} // 0 bytes
+		sealed, err = sut.Seal(ctx, secret)
+		require.NoError(t, err)
+		key2ID := sealed.KeyID
+
+		assert.NotEqual(t, keyID, key2ID)
+		key, _ := keyRepo.GetKey(ctx)
+		assert.Equal(t, key.ID, key2ID)
+	})
+	t.Run("rotate key after n encryptions are done", func(t *testing.T) {
+		ctx := context.Background()
+		keyRepo := inmemory.NewDataKeyRepository()
+		config.EncryptionsCountThreshold = 1
+		sut := NewKeyService(keyRepo, config)
+		secret := &model.Secret{}
+		sealed, err := sut.Seal(ctx, secret)
+		require.NoError(t, err)
+		keyID := sealed.KeyID
+
+		secret = &model.Secret{}
 		sealed, err = sut.Seal(ctx, secret)
 		require.NoError(t, err)
 		key2ID := sealed.KeyID

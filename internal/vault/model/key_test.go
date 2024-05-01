@@ -11,7 +11,8 @@ import (
 func TestDataKeyCopy(t *testing.T) {
 	want, err := NewDataKey()
 	want.ID = uuid.New()
-	want.EncryptedSize = 1024
+	want.EncryptedDataSize = 1024
+	want.EncryptionsCount = 4
 	require.NoError(t, err)
 
 	got := want.Copy()

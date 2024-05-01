@@ -7,9 +7,10 @@ import (
 )
 
 type DataKey struct {
-	Key           []byte
-	ID            uuid.UUID
-	EncryptedSize int64
+	Key               []byte
+	ID                uuid.UUID
+	EncryptedDataSize int64
+	EncryptionsCount  int
 }
 
 func NewDataKey() (*DataKey, error) {
@@ -23,8 +24,9 @@ func NewDataKey() (*DataKey, error) {
 
 func (k *DataKey) Copy() *DataKey {
 	return &DataKey{
-		ID:            k.ID,
-		Key:           k.Key,
-		EncryptedSize: k.EncryptedSize,
+		ID:                k.ID,
+		Key:               k.Key,
+		EncryptedDataSize: k.EncryptedDataSize,
+		EncryptionsCount:  k.EncryptionsCount,
 	}
 }

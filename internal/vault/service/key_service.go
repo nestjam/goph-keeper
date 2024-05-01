@@ -10,16 +10,19 @@ import (
 )
 
 const (
-	encryptedSizeThreshold = 1 * 1024 * 1024 // 1GB
+	encryptedDataSizeThreshold = 1 * 1024 * 1024 // 1GB
+	encryptionsCountThreshold  = 1000
 )
 
 type KeyRotationConfig struct {
-	EncryptedSizeThreshold int64
+	EncryptedDataSizeThreshold int64
+	EncryptionsCountThreshold  int
 }
 
 func NewKeyRotationConfig() KeyRotationConfig {
 	return KeyRotationConfig{
-		EncryptedSizeThreshold: encryptedSizeThreshold,
+		EncryptedDataSizeThreshold: encryptedDataSizeThreshold,
+		EncryptionsCountThreshold:  encryptionsCountThreshold,
 	}
 }
 
@@ -42,7 +45,9 @@ func (k *keyService) Seal(ctx context.Context, secret *model.Secret) (*model.Sec
 
 	key, err := k.keyRepo.GetKey(ctx)
 
-	if errors.Is(err, vault.ErrKeyNotFound) || key.EncryptedSize >= k.config.EncryptedSizeThreshold {
+	if errors.Is(err, vault.ErrKeyNotFound) ||
+		key.EncryptedDataSize >= k.config.EncryptedDataSizeThreshold ||
+		key.EncryptionsCount >= k.config.EncryptionsCountThreshold {
 		newKey, err := model.NewDataKey()
 		if err != nil {
 			return nil, errors.Wrap(err, op)

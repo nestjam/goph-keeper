@@ -62,12 +62,13 @@ func (r *dataKeyRepository) UpdateStats(ctx context.Context, id uuid.UUID, dataS
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	stored, ok := r.keys[id]
+	key, ok := r.keys[id]
 	if !ok {
 		return vault.ErrKeyNotFound
 	}
 
-	stored.EncryptedSize += dataSize
+	key.EncryptedDataSize += dataSize
+	key.EncryptionsCount++
 
 	return nil
 }
