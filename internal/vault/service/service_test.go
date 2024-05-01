@@ -112,7 +112,11 @@ func TestDeleteSecret(t *testing.T) {
 	t.Run("failed to delete secret", func(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
-		secretRepo := inmemory.NewSecretRepository()
+		secretRepo := &secretRepositoryMock{
+			DeleteSecretFunc: func(ctx context.Context, secretID, userID uuid.UUID) error {
+				return errors.New("failed")
+			},
+		}
 		rootKey, _ := utils.GenerateRandomAES256Key()
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
 		userID := uuid.New()
@@ -120,7 +124,7 @@ func TestDeleteSecret(t *testing.T) {
 
 		err := sut.DeleteSecret(ctx, secretID, userID)
 
-		require.NoError(t, err)
+		require.Error(t, err)
 	})
 }
 
