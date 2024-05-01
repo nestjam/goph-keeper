@@ -119,7 +119,7 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 
 				_, err = sut.GetSecret(ctx, anotherSecretID, userID)
 
-				require.ErrorIs(t, err, ErrSecretDoesNotExist)
+				require.ErrorIs(t, err, ErrSecretNotFound)
 			})
 			t.Run("user with id does not exist", func(t *testing.T) {
 				sut, tearDown := c.NewSecretRepository()
@@ -130,7 +130,7 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 
 				_, err := sut.GetSecret(ctx, secretID, userID)
 
-				require.ErrorIs(t, err, ErrSecretDoesNotExist)
+				require.ErrorIs(t, err, ErrSecretNotFound)
 			})
 		})
 

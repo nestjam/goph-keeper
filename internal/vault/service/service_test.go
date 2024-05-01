@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/nestjam/goph-keeper/internal/utils"
+	"github.com/nestjam/goph-keeper/internal/vault"
 	"github.com/nestjam/goph-keeper/internal/vault/model"
 	"github.com/nestjam/goph-keeper/internal/vault/repository/inmemory"
 	"github.com/stretchr/testify/assert"
@@ -84,6 +86,80 @@ func TestGetSecret(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = sut.GetSecret(ctx, added.ID, userID)
+
+		require.Error(t, err)
+	})
+}
+
+func TestDeleteSecret(t *testing.T) {
+	t.Run("delete secret", func(t *testing.T) {
+		ctx := context.Background()
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		rootKey, _ := utils.GenerateRandomAES256Key()
+		sut := NewVaultService(secretRepo, keyRepo, rootKey)
+		secret := &model.Secret{}
+		userID := uuid.New()
+		secret, err := secretRepo.AddSecret(ctx, secret, userID)
+		require.NoError(t, err)
+
+		err = sut.DeleteSecret(ctx, secret.ID, userID)
+
+		require.NoError(t, err)
+		_, err = secretRepo.GetSecret(ctx, secret.ID, userID)
+		assert.ErrorIs(t, err, vault.ErrSecretNotFound)
+	})
+	t.Run("failed to delete secret", func(t *testing.T) {
+		ctx := context.Background()
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		rootKey, _ := utils.GenerateRandomAES256Key()
+		sut := NewVaultService(secretRepo, keyRepo, rootKey)
+		userID := uuid.New()
+		secretID := uuid.New()
+
+		err := sut.DeleteSecret(ctx, secretID, userID)
+
+		require.NoError(t, err)
+	})
+}
+
+func TestListSecrets(t *testing.T) {
+	t.Run("list user secrets", func(t *testing.T) {
+		ctx := context.Background()
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		rootKey, _ := utils.GenerateRandomAES256Key()
+		sut := NewVaultService(secretRepo, keyRepo, rootKey)
+		userID := uuid.New()
+		secret := &model.Secret{}
+		secret, _ = secretRepo.AddSecret(ctx, secret, userID)
+		secret2 := &model.Secret{}
+		secret2, _ = secretRepo.AddSecret(ctx, secret2, userID)
+		user2ID := uuid.New()
+		secret3 := &model.Secret{}
+		_, _ = secretRepo.AddSecret(ctx, secret3, user2ID)
+
+		secrets, err := sut.ListSecrets(ctx, userID)
+
+		require.NoError(t, err)
+		assert.Equal(t, 2, len(secrets))
+		assert.Equal(t, secret.ID, secrets[0].ID)
+		assert.Equal(t, secret2.ID, secrets[1].ID)
+	})
+	t.Run("failed to list secret", func(t *testing.T) {
+		ctx := context.Background()
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := &secretRepositoryMock{
+			ListSecretsFunc: func(ctx context.Context, userID uuid.UUID) ([]*model.Secret, error) {
+				return nil, errors.New("failed")
+			},
+		}
+		rootKey, _ := utils.GenerateRandomAES256Key()
+		sut := NewVaultService(secretRepo, keyRepo, rootKey)
+		userID := uuid.New()
+
+		_, err := sut.ListSecrets(ctx, userID)
 
 		require.Error(t, err)
 	})

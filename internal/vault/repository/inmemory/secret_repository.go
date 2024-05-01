@@ -63,12 +63,12 @@ func (r *secretRepository) GetSecret(ctx context.Context, secretID, userID uuid.
 
 	userSecrets, ok := r.userSecrets[userID]
 	if !ok {
-		return nil, vault.ErrSecretDoesNotExist
+		return nil, vault.ErrSecretNotFound
 	}
 
 	secret, ok := userSecrets[secretID]
 	if !ok {
-		return nil, vault.ErrSecretDoesNotExist
+		return nil, vault.ErrSecretNotFound
 	}
 
 	return secret, nil

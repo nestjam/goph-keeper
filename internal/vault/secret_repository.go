@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ErrSecretDoesNotExist = errors.New("secret does not exist")
+	ErrSecretNotFound = errors.New("secret not found")
 )
 
 type SecretRepository interface {
