@@ -21,7 +21,7 @@ sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
 			ID:   uuid.New(),
 			Data: []byte(text),
 		}
-		sut := NewAESGCMCipher()
+		sut := NewSecretCipher()
 
 		sealed, err := sut.Seal(want, key)
 
@@ -42,7 +42,7 @@ sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
 			ID:   uuid.New(),
 			Data: []byte("data"),
 		}
-		sut := NewAESGCMCipher()
+		sut := NewSecretCipher()
 		const size = 8
 		key, err := utils.GenerateRandom(size)
 		require.NoError(t, err)
@@ -59,7 +59,7 @@ sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
 			ID:   uuid.New(),
 			Data: nil,
 		}
-		sut := NewAESGCMCipher()
+		sut := NewSecretCipher()
 
 		_, err = sut.Seal(secret, key)
 
@@ -73,7 +73,7 @@ func TestUnseal(t *testing.T) {
 			ID:   uuid.New(),
 			Data: []byte("data"),
 		}
-		sut := NewAESGCMCipher()
+		sut := NewSecretCipher()
 		const size = 8
 		key, err := utils.GenerateRandom(size)
 		require.NoError(t, err)
@@ -88,7 +88,7 @@ func TestUnseal(t *testing.T) {
 			ID:   uuid.New(),
 			Data: []byte("invalid data"),
 		}
-		sut := NewAESGCMCipher()
+		sut := NewSecretCipher()
 		key, err := NewDataKey()
 		require.NoError(t, err)
 

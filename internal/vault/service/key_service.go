@@ -28,14 +28,14 @@ func NewKeyRotationConfig() KeyRotationConfig {
 
 type keyService struct {
 	keyRepo vault.DataKeyRepository
-	cipher  *model.Cipher
+	cipher  *model.SecretCipher
 	config  KeyRotationConfig
 }
 
 func NewKeyService(keyRepo vault.DataKeyRepository, config KeyRotationConfig) *keyService {
 	return &keyService{
 		keyRepo: keyRepo,
-		cipher:  model.NewAESGCMCipher(),
+		cipher:  model.NewSecretCipher(),
 		config:  config,
 	}
 }

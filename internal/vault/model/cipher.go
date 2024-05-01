@@ -11,14 +11,14 @@ import (
 	"github.com/nestjam/goph-keeper/internal/utils"
 )
 
-type Cipher struct {
+type SecretCipher struct {
 }
 
-func NewAESGCMCipher() *Cipher {
-	return &Cipher{}
+func NewSecretCipher() *SecretCipher {
+	return &SecretCipher{}
 }
 
-func (c *Cipher) Seal(unsealed *Secret, dataKey *DataKey) (*Secret, error) {
+func (c *SecretCipher) Seal(unsealed *Secret, dataKey *DataKey) (*Secret, error) {
 	const op = "seal"
 
 	cipher, err := newBlockCipher(dataKey.Key)
@@ -36,7 +36,7 @@ func (c *Cipher) Seal(unsealed *Secret, dataKey *DataKey) (*Secret, error) {
 	return sealed, nil
 }
 
-func (c *Cipher) Unseal(sealed *Secret, dataKey *DataKey) (unsealed *Secret, err error) {
+func (c *SecretCipher) Unseal(sealed *Secret, dataKey *DataKey) (unsealed *Secret, err error) {
 	const op = "unseal"
 
 	cipher, err := newBlockCipher(dataKey.Key)
