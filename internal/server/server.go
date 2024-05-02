@@ -10,14 +10,18 @@ import (
 )
 
 type Server struct {
-	rootKey *model.MasterKey
-	baseURL string
+	rootKey  *model.MasterKey
+	baseURL  string
+	certFile string
+	keyFile  string
 }
 
-func New(baseURL, rootKey string) *Server {
+func New(baseURL, rootKey, certFile, keyFile string) *Server {
 	return &Server{
-		baseURL: baseURL,
-		rootKey: model.NewMasterKey([]byte(rootKey)),
+		baseURL:  baseURL,
+		rootKey:  model.NewMasterKey([]byte(rootKey)),
+		certFile: certFile,
+		keyFile:  keyFile,
 	}
 }
 
@@ -26,7 +30,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	h := s.mapHandlers()
 
-	if err := http.ListenAndServe(s.baseURL, h); err != nil {
+	if err := http.ListenAndServeTLS(s.baseURL, s.certFile, s.keyFile, h); err != nil {
 		return errors.Wrap(err, op)
 	}
 

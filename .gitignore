@@ -8,6 +8,10 @@
 *.so
 *.dylib
 
+#Certs and private keys
+*.crt
+*.key
+
 # Test binary, built with `go test -c`
 *.test
 
