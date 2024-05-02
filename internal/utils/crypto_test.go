@@ -38,3 +38,68 @@ func TestGenerateRandomAES256Key(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, wantKeySize, len(got))
 }
+
+func TestBlockCipher_Seal(t *testing.T) {
+	t.Run("seal and unseal", func(t *testing.T) {
+		key, err := GenerateRandomAES256Key()
+		require.NoError(t, err)
+		sut := NewBlockCipher(key)
+		plaintext := []byte("sensitive data")
+
+		ciphertext, iv, err := sut.Seal(plaintext)
+
+		require.NoError(t, err)
+
+		got, err := sut.Unseal(ciphertext, iv)
+
+		require.NoError(t, err)
+		assert.Equal(t, plaintext, got)
+	})
+	t.Run("invalid key", func(t *testing.T) {
+		const size = 8 // should be min 16 bytes
+		key, err := GenerateRandom(size)
+		require.NoError(t, err)
+		sut := NewBlockCipher(key)
+		plaintext := []byte("sensitive data")
+
+		_, _, err = sut.Seal(plaintext)
+
+		require.Error(t, err)
+	})
+	t.Run("seal empty data", func(t *testing.T) {
+		key, err := GenerateRandomAES256Key()
+		require.NoError(t, err)
+		sut := NewBlockCipher(key)
+		var plaintext []byte
+
+		_, _, err = sut.Seal(plaintext)
+
+		require.NoError(t, err)
+	})
+}
+
+func TestBlockCipher_Unseal(t *testing.T) {
+	t.Run("invalid key", func(t *testing.T) {
+		const size = 8 // should be min 16 bytes
+		key, err := GenerateRandom(size)
+		require.NoError(t, err)
+		sut := NewBlockCipher(key)
+		ciphertext := []byte("ciphertext")
+		iv := []byte("iv")
+
+		_, err = sut.Unseal(ciphertext, iv)
+
+		require.Error(t, err)
+	})
+	t.Run("unseal invalid ciphertext", func(t *testing.T) {
+		key, err := GenerateRandomAES256Key()
+		require.NoError(t, err)
+		sut := NewBlockCipher(key)
+		ciphertext := []byte("ciphertext")
+		iv := []byte("iv")
+
+		_, err = sut.Unseal(ciphertext, iv)
+
+		require.Error(t, err)
+	})
+}

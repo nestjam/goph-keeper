@@ -61,18 +61,6 @@ sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
 
 		require.Error(t, err)
 	})
-	t.Run("seal empty data", func(t *testing.T) {
-		sut, err := NewDataKey()
-		require.NoError(t, err)
-		secret := &Secret{
-			ID:   uuid.New(),
-			Data: nil,
-		}
-
-		_, err = sut.Seal(secret)
-
-		require.NoError(t, err)
-	})
 }
 
 func TestDataKey_Unseal(t *testing.T) {
@@ -87,18 +75,6 @@ func TestDataKey_Unseal(t *testing.T) {
 		sut := &DataKey{Key: key}
 
 		_, err = sut.Unseal(secret)
-
-		require.Error(t, err)
-	})
-	t.Run("unseal invalid data", func(t *testing.T) {
-		secret := &Secret{
-			ID:   uuid.New(),
-			Data: []byte("invalid data"),
-		}
-		key, err := NewDataKey()
-		require.NoError(t, err)
-
-		_, err = key.Unseal(secret)
 
 		require.Error(t, err)
 	})
