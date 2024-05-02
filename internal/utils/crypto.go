@@ -43,20 +43,7 @@ func NewBlockCipher(key []byte) *blockCipher {
 	return &blockCipher{key: key}
 }
 
-func (c *blockCipher) Seal(plaintext []byte) (ciphertext []byte, iv []byte, err error) {
-	const op = "seal"
-
-	cipher, err := newBlockCipher(c.key)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, op)
-	}
-
-	nonce, _ := GenerateRandom(cipher.NonceSize())
-
-	return cipher.Seal(nil, nonce, plaintext, nil), nonce, nil
-}
-
-func (c *blockCipher) Unseal(ciphertext, iv []byte) (plaintext []byte, err error) {
+func (c *blockCipher) Seal(plaintext []byte) (ciphertext []byte, err error) {
 	const op = "seal"
 
 	cipher, err := newBlockCipher(c.key)
@@ -64,11 +51,24 @@ func (c *blockCipher) Unseal(ciphertext, iv []byte) (plaintext []byte, err error
 		return nil, errors.Wrap(err, op)
 	}
 
-	plaintext, err = open(ciphertext, iv, cipher)
+	nonce, _ := GenerateRandom(cipher.NonceSize())
+
+	return cipher.Seal(nonce, nonce, plaintext, nil), nil
+}
+
+func (c *blockCipher) Unseal(ciphertext []byte) (plaintext []byte, err error) {
+	const op = "seal"
+
+	cipher, err := newBlockCipher(c.key)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	plaintext, err = open(ciphertext, cipher)
 	return
 }
 
-func open(ciphertext, iv []byte, cipher cipher.AEAD) (plaintext []byte, err error) {
+func open(ciphertext []byte, cipher cipher.AEAD) (plaintext []byte, err error) {
 	const op = "open"
 
 	defer func() {
@@ -77,7 +77,7 @@ func open(ciphertext, iv []byte, cipher cipher.AEAD) (plaintext []byte, err erro
 		}
 	}()
 
-	plaintext, err = cipher.Open(nil, iv, ciphertext, nil)
+	plaintext, err = cipher.Open(nil, ciphertext[:cipher.NonceSize()], ciphertext[cipher.NonceSize():], nil)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}

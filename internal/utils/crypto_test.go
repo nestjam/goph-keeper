@@ -46,11 +46,11 @@ func TestBlockCipher_Seal(t *testing.T) {
 		sut := NewBlockCipher(key)
 		plaintext := []byte("sensitive data")
 
-		ciphertext, iv, err := sut.Seal(plaintext)
+		ciphertext, err := sut.Seal(plaintext)
 
 		require.NoError(t, err)
 
-		got, err := sut.Unseal(ciphertext, iv)
+		got, err := sut.Unseal(ciphertext)
 
 		require.NoError(t, err)
 		assert.Equal(t, plaintext, got)
@@ -62,7 +62,7 @@ func TestBlockCipher_Seal(t *testing.T) {
 		sut := NewBlockCipher(key)
 		plaintext := []byte("sensitive data")
 
-		_, _, err = sut.Seal(plaintext)
+		_, err = sut.Seal(plaintext)
 
 		require.Error(t, err)
 	})
@@ -72,7 +72,7 @@ func TestBlockCipher_Seal(t *testing.T) {
 		sut := NewBlockCipher(key)
 		var plaintext []byte
 
-		_, _, err = sut.Seal(plaintext)
+		_, err = sut.Seal(plaintext)
 
 		require.NoError(t, err)
 	})
@@ -85,9 +85,8 @@ func TestBlockCipher_Unseal(t *testing.T) {
 		require.NoError(t, err)
 		sut := NewBlockCipher(key)
 		ciphertext := []byte("ciphertext")
-		iv := []byte("iv")
 
-		_, err = sut.Unseal(ciphertext, iv)
+		_, err = sut.Unseal(ciphertext)
 
 		require.Error(t, err)
 	})
@@ -96,9 +95,8 @@ func TestBlockCipher_Unseal(t *testing.T) {
 		require.NoError(t, err)
 		sut := NewBlockCipher(key)
 		ciphertext := []byte("ciphertext")
-		iv := []byte("iv")
 
-		_, err = sut.Unseal(ciphertext, iv)
+		_, err = sut.Unseal(ciphertext)
 
 		require.Error(t, err)
 	})

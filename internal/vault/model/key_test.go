@@ -37,13 +37,11 @@ sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
 
 		require.NoError(t, err)
 		assert.Equal(t, sut.ID, sealed.KeyID)
-		assert.NotNil(t, sealed.IV)
 
 		unsealed, err := sut.Unseal(sealed)
 
 		require.NoError(t, err)
 		assert.Equal(t, uuid.Nil, unsealed.KeyID)
-		assert.Nil(t, unsealed.IV)
 
 		assert.Equal(t, want, unsealed)
 	})

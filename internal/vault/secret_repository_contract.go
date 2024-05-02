@@ -21,7 +21,6 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		t.Cleanup(tearDown)
 		secret := &model.Secret{
 			Data: []byte("data"),
-			IV:   []byte("iv"),
 		}
 		userID := uuid.New()
 		ctx := context.Background()
@@ -31,7 +30,6 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEqual(t, uuid.Nil, got.ID)
 		assert.Equal(t, secret.Data, got.Data)
-		assert.Equal(t, secret.IV, got.IV)
 	})
 
 	t.Run("list secrets", func(t *testing.T) {
@@ -53,7 +51,6 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 			ctx := context.Background()
 			secret := &model.Secret{
 				Data: []byte("data_"),
-				IV:   []byte("iv_"),
 			}
 			s1, err := sut.AddSecret(ctx, secret, userID)
 			require.NoError(t, err)

@@ -34,7 +34,6 @@ func (r *secretRepository) ListSecrets(ctx context.Context, userID uuid.UUID) ([
 	for _, secret := range userSecrets {
 		secrets[i] = secret.Copy()
 		secrets[i].Data = nil
-		secrets[i].IV = nil
 		i++
 	}
 

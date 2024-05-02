@@ -20,14 +20,13 @@ func (k *MasterKey) Seal(dataKey *DataKey) (*DataKey, error) {
 	const op = "seal"
 
 	cipher := utils.NewBlockCipher(k.key)
-	ciphertext, iv, err := cipher.Seal(dataKey.Key)
+	ciphertext, err := cipher.Seal(dataKey.Key)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
 
 	sealed := dataKey.Copy()
 	sealed.Key = ciphertext
-	sealed.IV = iv
 
 	return sealed, nil
 }
@@ -36,13 +35,12 @@ func (k *MasterKey) Unseal(dataKey *DataKey) (*DataKey, error) {
 	const op = "unseal"
 
 	cipher := utils.NewBlockCipher(k.key)
-	plaintext, err := cipher.Unseal(dataKey.Key, dataKey.IV)
+	plaintext, err := cipher.Unseal(dataKey.Key)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
 
 	unsealed := dataKey.Copy()
-	unsealed.IV = nil
 	unsealed.Key = plaintext
 
 	return unsealed, nil
