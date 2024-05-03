@@ -11,28 +11,28 @@ import (
 )
 
 type userRepository struct {
-	users map[string]*model.User
+	users map[string]model.User
 	ids   map[uuid.UUID]struct{}
 	mu    sync.Mutex
 }
 
 func NewUserRepository() auth.UserRepository {
 	return &userRepository{
-		users: make(map[string]*model.User),
+		users: make(map[string]model.User),
 		ids:   make(map[uuid.UUID]struct{}),
 	}
 }
 
-func (r *userRepository) Register(ctx context.Context, user *model.User) (*model.User, error) {
+func (r *userRepository) Register(ctx context.Context, user model.User) (model.User, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if _, ok := r.users[user.Email]; ok {
-		return nil, auth.ErrUserWithEmailIsRegistered
+		return model.User{}, auth.ErrUserWithEmailIsRegistered
 	}
 
 	id := uuid.New()
-	createdUser := &model.User{
+	createdUser := model.User{
 		ID:       id,
 		Email:    user.Email,
 		Password: user.Password,
@@ -42,11 +42,11 @@ func (r *userRepository) Register(ctx context.Context, user *model.User) (*model
 	return createdUser, nil
 }
 
-func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
+func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (model.User, error) {
 	panic("unimplemented")
 }
 
-func (r *userRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
+func (r *userRepository) FindByEmail(ctx context.Context, email string) (model.User, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -54,5 +54,5 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*model.
 		return user, nil
 	}
 
-	return nil, auth.ErrUserIsNotRegistered
+	return model.User{}, auth.ErrUserIsNotRegistered
 }

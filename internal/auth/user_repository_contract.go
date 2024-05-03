@@ -20,7 +20,7 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 		t.Run("register new user", func(t *testing.T) {
 			sut, tearDown := c.NewUserRepository()
 			t.Cleanup(tearDown)
-			user := &model.User{
+			user := model.User{
 				Email:    "user@email.com",
 				Password: "123",
 			}
@@ -36,7 +36,7 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 		t.Run("register user with email that has already been registered", func(t *testing.T) {
 			sut, tearDown := c.NewUserRepository()
 			t.Cleanup(tearDown)
-			user := &model.User{
+			user := model.User{
 				Email:    "user@email.com",
 				Password: "123",
 			}
@@ -54,7 +54,7 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 		t.Run("find existing user", func(t *testing.T) {
 			sut, tearDown := c.NewUserRepository()
 			t.Cleanup(tearDown)
-			user := &model.User{
+			user := model.User{
 				Email: "user@email.com",
 			}
 			ctx := context.Background()

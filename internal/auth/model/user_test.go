@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
@@ -60,18 +59,6 @@ func TestComparePassword(t *testing.T) {
 
 		assert.False(t, got)
 	})
-}
-
-func TestCopy(t *testing.T) {
-	sut := &User{
-		ID:       uuid.New(),
-		Email:    "user@email.com",
-		Password: "1234",
-	}
-
-	got := sut.Copy()
-	assert.True(t, sut != got)
-	assert.Equal(t, sut, got)
 }
 
 func assertEqualPasswords(t *testing.T, password, hashedPassword string) {

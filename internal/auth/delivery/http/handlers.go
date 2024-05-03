@@ -92,7 +92,7 @@ func (h *AuthHandlers) Login() http.HandlerFunc {
 	})
 }
 
-func setAuthCookie(w http.ResponseWriter, user *model.User, baker *utils.AuthCookieBaker) error {
+func setAuthCookie(w http.ResponseWriter, user model.User, baker *utils.AuthCookieBaker) error {
 	const op = "set auth cookie"
 
 	cookie, err := baker.BakeCookie(user.ID)
@@ -104,15 +104,15 @@ func setAuthCookie(w http.ResponseWriter, user *model.User, baker *utils.AuthCoo
 	return nil
 }
 
-func getUser(r io.Reader) (*model.User, error) {
+func getUser(r io.Reader) (model.User, error) {
 	const op = "get user"
 	var userRequest RegisterUserRequest
 	decoder := json.NewDecoder(r)
 	err := decoder.Decode(&userRequest)
 	if err != nil {
-		return nil, errors.Wrap(err, op)
+		return model.User{}, errors.Wrap(err, op)
 	}
-	user := &model.User{
+	user := model.User{
 		Email:    userRequest.Email,
 		Password: userRequest.Password,
 	}

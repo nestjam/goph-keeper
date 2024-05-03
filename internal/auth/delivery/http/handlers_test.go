@@ -77,8 +77,8 @@ func TestRegister(t *testing.T) {
 	})
 	t.Run("register failed", func(t *testing.T) {
 		service := &authServiceMock{}
-		service.RegisterFunc = func(ctx context.Context, user *model.User) (*model.User, error) {
-			return nil, errors.New("failed to register")
+		service.RegisterFunc = func(ctx context.Context, user model.User) (model.User, error) {
+			return model.User{}, errors.New("failed to register")
 		}
 		sut := NewAuthHandlers(service, config)
 		r := newRegisterUserRequest(t, "/", email, password)
@@ -103,7 +103,7 @@ func TestLogin(t *testing.T) {
 
 	t.Run("login registered user", func(t *testing.T) {
 		ctx := context.Background()
-		user := &model.User{Email: email, Password: password}
+		user := model.User{Email: email, Password: password}
 		err := user.HashPassword()
 		require.NoError(t, err)
 		repo := inmemory.NewUserRepository()
@@ -132,8 +132,8 @@ func TestLogin(t *testing.T) {
 	})
 	t.Run("login failed", func(t *testing.T) {
 		service := &authServiceMock{}
-		service.LoginFunc = func(ctx context.Context, user *model.User) (*model.User, error) {
-			return nil, errors.New("failed to login")
+		service.LoginFunc = func(ctx context.Context, user model.User) (model.User, error) {
+			return model.User{}, errors.New("failed to login")
 		}
 		sut := NewAuthHandlers(service, config)
 		r := newLoginUserRequest(t, "/", email, password)

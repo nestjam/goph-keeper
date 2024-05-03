@@ -22,7 +22,7 @@ func TestRegister(t *testing.T) {
 		)
 		repo := inmemory.NewUserRepository()
 		sut := NewAuthService(repo)
-		user := &model.User{Email: email, Password: password}
+		user := model.User{Email: email, Password: password}
 		ctx := context.Background()
 
 		got, err := sut.Register(ctx, user)
@@ -40,7 +40,7 @@ func TestRegister(t *testing.T) {
 		const email = "user@email.com"
 		repo := inmemory.NewUserRepository()
 		sut := NewAuthService(repo)
-		user := &model.User{
+		user := model.User{
 			Email:    email,
 			Password: strings.Repeat("0", model.PasswordMaxLengthInBytes+1),
 		}
@@ -57,9 +57,9 @@ func TestRegister(t *testing.T) {
 		)
 		repo := inmemory.NewUserRepository()
 		ctx := context.Background()
-		_, _ = repo.Register(ctx, &model.User{Email: email, Password: "psw"})
+		_, _ = repo.Register(ctx, model.User{Email: email, Password: "psw"})
 		sut := NewAuthService(repo)
-		user := &model.User{Email: email, Password: password}
+		user := model.User{Email: email, Password: password}
 
 		_, err := sut.Register(ctx, user)
 
@@ -75,11 +75,11 @@ func TestLogin(t *testing.T) {
 		)
 		ctx := context.Background()
 		repo := inmemory.NewUserRepository()
-		want := &model.User{Email: email, Password: password}
+		want := model.User{Email: email, Password: password}
 		_ = want.HashPassword()
 		want, err := repo.Register(ctx, want)
 		require.NoError(t, err)
-		user := &model.User{Email: email, Password: password}
+		user := model.User{Email: email, Password: password}
 		sut := NewAuthService(repo)
 
 		got, err := sut.Login(ctx, user)
@@ -94,12 +94,12 @@ func TestLogin(t *testing.T) {
 		)
 		ctx := context.Background()
 		repo := inmemory.NewUserRepository()
-		want := &model.User{Email: email, Password: password}
+		want := model.User{Email: email, Password: password}
 		_ = want.HashPassword()
 		_, err := repo.Register(ctx, want)
 		require.NoError(t, err)
 		const invalidPassword = "4321"
-		user := &model.User{Email: email, Password: invalidPassword}
+		user := model.User{Email: email, Password: invalidPassword}
 		sut := NewAuthService(repo)
 
 		_, err = sut.Login(ctx, user)
@@ -113,7 +113,7 @@ func TestLogin(t *testing.T) {
 		ctx := context.Background()
 		repo := inmemory.NewUserRepository()
 		sut := NewAuthService(repo)
-		user := &model.User{Email: email}
+		user := model.User{Email: email}
 
 		_, err := sut.Login(ctx, user)
 
