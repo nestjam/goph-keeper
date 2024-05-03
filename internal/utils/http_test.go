@@ -4,12 +4,15 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/nestjam/goph-keeper/internal/config"
 )
 
 func TestUserFromContext(t *testing.T) {
@@ -60,4 +63,35 @@ func TestUserFromContext(t *testing.T) {
 
 		require.Error(t, err)
 	})
+}
+
+func TestBakeCookie(t *testing.T) {
+	config := config.JWTAuthConfig{
+		SignKey:       "secret",
+		TokenExpiryIn: time.Minute,
+	}
+	sut := NewAuthCookieBaker(config)
+	userID := uuid.New()
+	wantMaxAge := int(config.TokenExpiryIn / time.Second)
+
+	cookie, err := sut.BakeCookie(userID)
+
+	require.NoError(t, err)
+	assert.Equal(t, true, cookie.HttpOnly)
+	assert.Equal(t, JWTCookieName, cookie.Name)
+	assert.Equal(t, wantMaxAge, cookie.MaxAge)
+	assertAuthToken(t, userID, cookie.Value, config.SignKey)
+}
+
+func assertAuthToken(t *testing.T, want uuid.UUID, tkn, key string) {
+	t.Helper()
+
+	jwtAuth := jwtauth.New(JWTAlg, []byte(key), nil)
+	token, err := jwtAuth.Decode(tkn)
+	require.NoError(t, err)
+	claims := token.PrivateClaims()
+	value, _ := claims[UserIDClaim].(string)
+	got, err := uuid.Parse(value)
+	require.NoError(t, err)
+	assert.Equal(t, want, got)
 }
