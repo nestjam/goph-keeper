@@ -38,6 +38,30 @@ func TestHashPassword(t *testing.T) {
 	})
 }
 
+func TestComparePassword(t *testing.T) {
+	t.Run("passwords are equal", func(t *testing.T) {
+		const password = "1234"
+		sut := &User{Password: password}
+		err := sut.HashPassword()
+		require.NoError(t, err)
+
+		got := sut.ComparePassword(password)
+
+		assert.True(t, got)
+	})
+	t.Run("passwords are not equal", func(t *testing.T) {
+		const password = "1234"
+		sut := &User{Password: password}
+		err := sut.HashPassword()
+		require.NoError(t, err)
+		const p = "4321"
+
+		got := sut.ComparePassword(p)
+
+		assert.False(t, got)
+	})
+}
+
 func TestCopy(t *testing.T) {
 	sut := &User{
 		ID:       uuid.New(),

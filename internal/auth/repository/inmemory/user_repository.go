@@ -54,5 +54,5 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*model.
 		return user, nil
 	}
 
-	return nil, auth.ErrUserIsNotRegisteredAtEmail
+	return nil, auth.ErrUserIsNotRegistered
 }

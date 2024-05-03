@@ -28,6 +28,11 @@ func (u *User) HashPassword() error {
 	return nil
 }
 
+func (u *User) ComparePassword(password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+	return err == nil
+}
+
 func (u *User) Copy() *User {
 	return &User{
 		ID:       u.ID,

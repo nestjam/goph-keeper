@@ -67,6 +67,60 @@ func TestRegister(t *testing.T) {
 	})
 }
 
+func TestLogin(t *testing.T) {
+	t.Run("login registered user", func(t *testing.T) {
+		const (
+			email    = "user@mail.com"
+			password = "1234"
+		)
+		ctx := context.Background()
+		repo := inmemory.NewUserRepository()
+		want := &model.User{Email: email, Password: password}
+		_ = want.HashPassword()
+		want, err := repo.Register(ctx, want)
+		require.NoError(t, err)
+		user := &model.User{Email: email, Password: password}
+		sut := NewAuthService(repo)
+
+		got, err := sut.Login(ctx, user)
+
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+	})
+	t.Run("login with wrong password", func(t *testing.T) {
+		const (
+			email    = "user@mail.com"
+			password = "1234"
+		)
+		ctx := context.Background()
+		repo := inmemory.NewUserRepository()
+		want := &model.User{Email: email, Password: password}
+		_ = want.HashPassword()
+		_, err := repo.Register(ctx, want)
+		require.NoError(t, err)
+		const invalidPassword = "4321"
+		user := &model.User{Email: email, Password: invalidPassword}
+		sut := NewAuthService(repo)
+
+		_, err = sut.Login(ctx, user)
+
+		require.ErrorIs(t, err, auth.ErrInvalidPassword)
+	})
+	t.Run("user is not registered by email", func(t *testing.T) {
+		const (
+			email = "no@mail.com"
+		)
+		ctx := context.Background()
+		repo := inmemory.NewUserRepository()
+		sut := NewAuthService(repo)
+		user := &model.User{Email: email}
+
+		_, err := sut.Login(ctx, user)
+
+		require.ErrorIs(t, err, auth.ErrUserIsNotRegistered)
+	})
+}
+
 func assertEqualPasswords(t *testing.T, password, hashedPassword string) {
 	t.Helper()
 

@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	ErrUserWithEmailIsRegistered  = errors.New("user with email has already been registered")
-	ErrUserIsNotRegisteredAtEmail = errors.New("user is not registered at email")
+	ErrUserWithEmailIsRegistered = errors.New("user with email has already been registered")
+	ErrUserIsNotRegistered       = errors.New("user is not registered")
 )
 
 type UserRepository interface {

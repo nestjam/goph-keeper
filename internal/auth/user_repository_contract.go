@@ -75,7 +75,7 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 			ctx := context.Background()
 
 			_, err := sut.FindByEmail(ctx, user.Email)
-			require.ErrorIs(t, err, ErrUserIsNotRegisteredAtEmail)
+			require.ErrorIs(t, err, ErrUserIsNotRegistered)
 		})
 	})
 }

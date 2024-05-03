@@ -10,5 +10,6 @@ func MapAuthRoutes(r chi.Router, h *AuthHandlers) {
 		r.Use(middleware.AllowContentType(applicationJSON))
 
 		r.Post("/register", h.Register())
+		r.Post("/login", h.Login())
 	})
 }

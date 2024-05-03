@@ -23,21 +23,25 @@ type RegisterUserRequest struct {
 	Password string `json:"password"`
 }
 
+type LoginUserRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type AuthHandlers struct {
-	service    auth.AuthService
-	authConfig config.JWTAuthConfig
+	service     auth.AuthService
+	cookieBaker *utils.AuthCookieBaker
 }
 
 func NewAuthHandlers(service auth.AuthService, authConfig config.JWTAuthConfig) *AuthHandlers {
 	return &AuthHandlers{
-		service:    service,
-		authConfig: authConfig,
+		service:     service,
+		cookieBaker: utils.NewAuthCookieBaker(authConfig),
 	}
 }
 
+//nolint:dupl //register method
 func (h *AuthHandlers) Register() http.HandlerFunc {
-	cookieBaker := utils.NewAuthCookieBaker(h.authConfig)
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, err := getUser(r.Body)
 		if err != nil {
@@ -46,21 +50,58 @@ func (h *AuthHandlers) Register() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		createdUser, err := h.service.Register(ctx, user)
+		newUser, err := h.service.Register(ctx, user)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		cookie, err := cookieBaker.BakeCookie(createdUser.ID)
+		err = setAuthCookie(w, newUser, h.cookieBaker)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		http.SetCookie(w, cookie)
 
 		w.WriteHeader(http.StatusCreated)
 	})
+}
+
+//nolint:dupl //login method
+func (h *AuthHandlers) Login() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, err := getUser(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		ctx := r.Context()
+		user, err = h.service.Login(ctx, user)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err = setAuthCookie(w, user, h.cookieBaker)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	})
+}
+
+func setAuthCookie(w http.ResponseWriter, user *model.User, baker *utils.AuthCookieBaker) error {
+	const op = "set auth cookie"
+
+	cookie, err := baker.BakeCookie(user.ID)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+	http.SetCookie(w, cookie)
+
+	return nil
 }
 
 func getUser(r io.Reader) (*model.User, error) {

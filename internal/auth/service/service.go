@@ -26,10 +26,25 @@ func (s *authService) Register(ctx context.Context, user *model.User) (*model.Us
 		return nil, errors.Wrap(err, op)
 	}
 
-	createdUser, err := s.repo.Register(ctx, user)
+	newUser, err := s.repo.Register(ctx, user)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
 
-	return createdUser, nil
+	return newUser, nil
+}
+
+func (s *authService) Login(ctx context.Context, user *model.User) (*model.User, error) {
+	const op = "login"
+
+	foundUser, err := s.repo.FindByEmail(ctx, user.Email)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	if !foundUser.ComparePassword(user.Password) {
+		return nil, auth.ErrInvalidPassword
+	}
+
+	return foundUser, nil
 }
