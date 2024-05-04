@@ -1,4 +1,4 @@
-package tui
+package auth
 
 import (
 	"net/http"
@@ -6,6 +6,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/nestjam/goph-keeper/internal/tui/vault"
 )
 
 type loginModel struct {
@@ -48,7 +50,7 @@ func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case loginCompletedMsg:
 		{
-			return NewSecretsModel(), listSecrets(m.serverAddress, msg.jwtCookie)
+			return vault.NewSecretsModel(), listSecrets(m.serverAddress, msg.jwtCookie)
 		}
 	case loginFailedMsg:
 		{
@@ -107,11 +109,8 @@ func login(address, email, password string) tea.Cmd {
 }
 
 func listSecrets(address string, jwtCookie *http.Cookie) tea.Cmd {
-	cmd := listSecretsCommand{
-		address:   address,
-		jwtCookie: jwtCookie,
-	}
-	return cmd.execute
+	cmd := vault.NewListSecretsCommand(address, jwtCookie)
+	return cmd.Execute
 }
 
 func acceptInput(m *loginModel, input string) {

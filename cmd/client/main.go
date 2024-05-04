@@ -4,11 +4,12 @@ import (
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/nestjam/goph-keeper/internal/tui"
+
+	"github.com/nestjam/goph-keeper/internal/tui/auth"
 )
 
 func main() {
-	m := tui.NewLoginModel()
+	m := auth.NewLoginModel()
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

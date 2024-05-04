@@ -1,4 +1,4 @@
-package tui
+package vault
 
 import (
 	"crypto/tls"
@@ -16,7 +16,14 @@ type listSecretsCommand struct {
 	address   string
 }
 
-func (c listSecretsCommand) execute() tea.Msg {
+func NewListSecretsCommand(address string, jwtCookie *http.Cookie) listSecretsCommand {
+	return listSecretsCommand{
+		address:   address,
+		jwtCookie: jwtCookie,
+	}
+}
+
+func (c listSecretsCommand) Execute() tea.Msg {
 	client := resty.New()
 
 	//nolint:gosec // using self-signed certificate
@@ -45,4 +52,8 @@ type listSecretsCompletedMsg struct {
 
 type listSecretsFailedMsg struct {
 	statusCode int
+}
+
+type errMsg struct {
+	err error
 }

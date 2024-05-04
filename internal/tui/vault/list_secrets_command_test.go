@@ -1,4 +1,4 @@
-package tui
+package vault
 
 import (
 	"encoding/json"
@@ -38,7 +38,7 @@ func TestListSecretsCommand(t *testing.T) {
 			jwtCookie: wantCookie,
 		}
 
-		msg := sut.execute()
+		msg := sut.Execute()
 
 		assert.Equal(t, wantURL, gotURL)
 		assert.Equal(t, wantCookie, gotCookie)
@@ -52,7 +52,7 @@ func TestListSecretsCommand(t *testing.T) {
 			address: string([]byte{0x7f}), // ASCII control character
 		}
 
-		got := sut.execute()
+		got := sut.Execute()
 
 		assert.IsType(t, errMsg{}, got)
 	})
@@ -65,7 +65,7 @@ func TestListSecretsCommand(t *testing.T) {
 			jwtCookie: &http.Cookie{},
 		}
 
-		got := sut.execute()
+		got := sut.Execute()
 
 		assert.IsType(t, errMsg{}, got)
 	})
@@ -79,7 +79,7 @@ func TestListSecretsCommand(t *testing.T) {
 			jwtCookie: &http.Cookie{},
 		}
 
-		got := sut.execute()
+		got := sut.Execute()
 
 		msg, ok := got.(listSecretsFailedMsg)
 		assert.True(t, ok)
@@ -98,5 +98,15 @@ func writeJSON(w http.ResponseWriter, statusCode int, v any) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	_, _ = w.Write(content)
+	return nil
+}
+
+func findCookie(cookies []*http.Cookie, name string) *http.Cookie {
+	for i := 0; i < len(cookies); i++ {
+		if cookies[i].Name == name {
+			return cookies[i]
+		}
+	}
+
 	return nil
 }

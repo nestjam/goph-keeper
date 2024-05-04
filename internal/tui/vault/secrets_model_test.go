@@ -1,6 +1,7 @@
-package tui
+package vault
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -57,4 +58,12 @@ func TestSecretsModel_Update(t *testing.T) {
 		assert.Nil(t, cmd)
 		assert.Equal(t, wantRows, m.table.Rows())
 	})
+}
+
+func assertEqualCmd(t *testing.T, want, got tea.Cmd) {
+	t.Helper()
+
+	gotValue := reflect.ValueOf(got)
+	wantValue := reflect.ValueOf(want)
+	assert.Equal(t, gotValue.Pointer(), wantValue.Pointer())
 }

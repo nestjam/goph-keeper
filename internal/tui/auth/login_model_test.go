@@ -1,4 +1,4 @@
-package tui
+package auth
 
 import (
 	"net/http"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/nestjam/goph-keeper/internal/tui/vault"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -117,10 +118,9 @@ func TestLoginModel_Update(t *testing.T) {
 
 		model, cmd := sut.Update(msg)
 
-		_, ok := model.(secretsModel)
-		assert.True(t, ok)
-		listCommand := listSecretsCommand{}
-		assertEqualCmd(t, listCommand.execute, cmd)
+		assert.IsType(t, vault.NewSecretsModel(), model)
+		listCommand := vault.NewListSecretsCommand("", nil)
+		assertEqualCmd(t, listCommand.Execute, cmd)
 	})
 	t.Run("error on login", func(t *testing.T) {
 		m := NewLoginModel()
