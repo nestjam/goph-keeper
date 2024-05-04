@@ -48,7 +48,7 @@ func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case loginCompletedMsg:
 		{
-			return secretsModel{}, listSecrets(m.serverAddress, msg.jwtCookie)
+			return NewSecretsModel(), listSecrets(m.serverAddress, msg.jwtCookie)
 		}
 	case loginFailedMsg:
 		{
@@ -61,7 +61,6 @@ func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = msg.err
 			return m, nil
 		}
-	default:
 	}
 
 	var cmd tea.Cmd
