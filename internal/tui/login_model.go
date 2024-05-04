@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"net/http"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -47,7 +48,7 @@ func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case loginCompletedMsg:
 		{
-			return secretsModel{}, nil
+			return secretsModel{}, listSecrets(m.serverAddress, msg.jwtCookie)
 		}
 	case loginFailedMsg:
 		{
@@ -102,6 +103,14 @@ func login(address, email, password string) tea.Cmd {
 		address:  address,
 		email:    email,
 		password: password,
+	}
+	return cmd.execute
+}
+
+func listSecrets(address string, jwtCookie *http.Cookie) tea.Cmd {
+	cmd := listSecretsCommand{
+		address:   address,
+		jwtCookie: jwtCookie,
 	}
 	return cmd.execute
 }

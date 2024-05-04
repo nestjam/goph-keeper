@@ -119,7 +119,8 @@ func TestLoginModel_Update(t *testing.T) {
 
 		_, ok := model.(secretsModel)
 		assert.True(t, ok)
-		assert.Nil(t, cmd)
+		listCommand := listSecretsCommand{}
+		assertEqualCmd(t, listCommand.execute, cmd)
 	})
 	t.Run("error on login", func(t *testing.T) {
 		m := NewLoginModel()

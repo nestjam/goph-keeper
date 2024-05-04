@@ -39,7 +39,7 @@ func (c loginCommand) execute() tea.Msg {
 	}
 
 	if resp.IsSuccess() {
-		jwtCookie := findCookie(resp, utils.JWTCookieName)
+		jwtCookie := findCookie(resp.Cookies(), utils.JWTCookieName)
 		if jwtCookie == nil {
 			return errMsg{errors.New("auth cookie not found")}
 		}
@@ -52,9 +52,7 @@ func (c loginCommand) execute() tea.Msg {
 	return loginFailedMsg{resp.StatusCode()}
 }
 
-func findCookie(r *resty.Response, name string) *http.Cookie {
-	cookies := r.Cookies()
-
+func findCookie(cookies []*http.Cookie, name string) *http.Cookie {
 	for i := 0; i < len(cookies); i++ {
 		if cookies[i].Name == name {
 			return cookies[i]
