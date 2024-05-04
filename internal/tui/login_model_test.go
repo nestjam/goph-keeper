@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -105,7 +106,29 @@ func TestLoginModel_Update(t *testing.T) {
 
 		got, _ := model.(loginModel)
 		assert.Equal(t, input, got.password)
+		loginCmd := loginCommand{}
+		assertEqualCmd(t, loginCmd.execute, cmd)
+	})
+	t.Run("login completed", func(t *testing.T) {
+		m := NewLoginModel()
+		sut := tea.Model(m)
+		msg := loginCompletedMsg{}
+
+		model, cmd := sut.Update(msg)
+
+		_, ok := model.(secretsModel)
+		assert.True(t, ok)
 		assert.Nil(t, cmd)
+	})
+	t.Run("error on login", func(t *testing.T) {
+		m := NewLoginModel()
+		sut := tea.Model(m)
+		msg := errMsg{errors.New("error")}
+
+		model, _ := sut.Update(msg)
+
+		got, _ := model.(loginModel)
+		assert.Equal(t, msg.err, got.err)
 	})
 }
 

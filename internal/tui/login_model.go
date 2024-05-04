@@ -11,6 +11,7 @@ type loginModel struct {
 	serverAddress string
 	email         string
 	password      string
+	err           error
 	textinput     textinput.Model
 }
 
@@ -37,8 +38,21 @@ func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			input := m.textinput.Value()
 			acceptInput(&m, input)
+
+			if canLogin(m.serverAddress, m.email, m.password) {
+				return m, login(m.serverAddress, m.email, m.password)
+			}
 			return m, nil
 		default:
+		}
+	case loginCompletedMsg:
+		{
+			return secretsModel{}, nil
+		}
+	case errMsg:
+		{
+			m.err = msg.err
+			return m, nil
 		}
 	default:
 	}
@@ -46,6 +60,44 @@ func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.textinput, cmd = m.textinput.Update(msg)
 	return m, cmd
+}
+
+func (m loginModel) View() string {
+	s := strings.Builder{}
+
+	if m.serverAddress != "" {
+		s.WriteString("server: ")
+		s.WriteString(m.serverAddress + "\n\n")
+	}
+	if m.email != "" {
+		s.WriteString("email: ")
+		s.WriteString(m.email + "\n\n")
+	}
+	if m.password != "" {
+		s.WriteString("password: ")
+		s.WriteString(m.password + "\n\n")
+	}
+	if m.err != nil {
+		s.WriteString("error: ")
+		s.WriteString(m.err.Error() + "\n\n")
+	}
+
+	s.WriteString(m.textinput.View())
+
+	return s.String()
+}
+
+func canLogin(address, email, password string) bool {
+	return address != "" && email != "" && password != ""
+}
+
+func login(address, email, password string) tea.Cmd {
+	cmd := loginCommand{
+		address:  address,
+		email:    email,
+		password: password,
+	}
+	return cmd.execute
 }
 
 func acceptInput(m *loginModel, input string) {
@@ -79,25 +131,4 @@ func acceptServerAddress(m *loginModel, input string) {
 	m.serverAddress = input
 	m.textinput.SetValue("")
 	m.textinput.Placeholder = "Enter email"
-}
-
-func (m loginModel) View() string {
-	s := strings.Builder{}
-
-	if m.serverAddress != "" {
-		s.WriteString("server: ")
-		s.WriteString(m.serverAddress + "\n\n")
-	}
-	if m.email != "" {
-		s.WriteString("email: ")
-		s.WriteString(m.email + "\n\n")
-	}
-	if m.password != "" {
-		s.WriteString("password: ")
-		s.WriteString(m.password + "\n\n")
-	}
-
-	s.WriteString(m.textinput.View())
-
-	return s.String()
 }
