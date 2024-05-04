@@ -33,10 +33,7 @@ func TestListSecretsCommand(t *testing.T) {
 			_ = writeJSON(w, http.StatusOK, resp)
 		}))
 		defer server.Close()
-		sut := listSecretsCommand{
-			address:   server.URL,
-			jwtCookie: wantCookie,
-		}
+		sut := NewListSecretsCommand(server.URL, wantCookie)
 
 		msg := sut.Execute()
 
@@ -60,10 +57,7 @@ func TestListSecretsCommand(t *testing.T) {
 		server := httptest.NewServer(nil)
 		serverURL := server.URL
 		server.Close()
-		sut := listSecretsCommand{
-			address:   serverURL,
-			jwtCookie: &http.Cookie{},
-		}
+		sut := NewListSecretsCommand(serverURL, &http.Cookie{})
 
 		got := sut.Execute()
 
@@ -74,10 +68,7 @@ func TestListSecretsCommand(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}))
 		defer server.Close()
-		sut := listSecretsCommand{
-			address:   server.URL,
-			jwtCookie: &http.Cookie{},
-		}
+		sut := NewListSecretsCommand(server.URL, &http.Cookie{})
 
 		got := sut.Execute()
 
