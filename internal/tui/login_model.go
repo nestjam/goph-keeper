@@ -49,6 +49,12 @@ func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		{
 			return secretsModel{}, nil
 		}
+	case loginFailedMsg:
+		{
+			m.password = ""
+			m.email = ""
+			acceptServerAddress(&m, m.serverAddress)
+		}
 	case errMsg:
 		{
 			m.err = msg.err

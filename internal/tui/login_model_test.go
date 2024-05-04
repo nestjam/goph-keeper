@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"net/http"
 	"reflect"
 	"testing"
 
@@ -129,6 +130,20 @@ func TestLoginModel_Update(t *testing.T) {
 
 		got, _ := model.(loginModel)
 		assert.Equal(t, msg.err, got.err)
+	})
+	t.Run("failed to login", func(t *testing.T) {
+		m := NewLoginModel()
+		m.serverAddress = "localhost:8080"
+		m.email = "user@mail.com"
+		m.password = "1234"
+		sut := tea.Model(m)
+		msg := loginFailedMsg{statusCode: http.StatusUnauthorized}
+
+		model, _ := sut.Update(msg)
+
+		got, _ := model.(loginModel)
+		assert.Empty(t, got.email)
+		assert.Empty(t, got.password)
 	})
 }
 
