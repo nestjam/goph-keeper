@@ -1,8 +1,10 @@
 package vault
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -16,11 +18,12 @@ var baseStyle = lipgloss.NewStyle().
 	BorderForeground(lipgloss.Color("240"))
 
 type secretsModel struct {
-	address   string
-	jwtCookie *http.Cookie
-	secrets   []httpVault.Secret
-
-	table table.Model
+	err                error
+	jwtCookie          *http.Cookie
+	address            string
+	secrets            []httpVault.Secret
+	table              table.Model
+	failtureStatusCode int
 }
 
 func NewSecretsModel(address string, jwtCookie *http.Cookie) secretsModel {
@@ -85,6 +88,16 @@ func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.table.SetRows(rows)
 		}
+	case listSecretsFailedMsg:
+		{
+			m.failtureStatusCode = msg.statusCode
+			m.table.Blur()
+		}
+	case errMsg:
+		{
+			m.err = msg.err
+			m.table.Blur()
+		}
 	}
 
 	var cmd tea.Cmd
@@ -93,7 +106,18 @@ func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m secretsModel) View() string {
-	return baseStyle.Render(m.table.View()) + "\n"
+	s := strings.Builder{}
+
+	if m.err != nil {
+		s.WriteString(fmt.Sprintf(errTemplate, m.err.Error()))
+	}
+	if m.failtureStatusCode != 0 {
+		s.WriteString(fmt.Sprintf(codeTemplate, m.failtureStatusCode))
+	}
+
+	s.WriteString(baseStyle.Render(m.table.View()) + "\n")
+
+	return s.String()
 }
 
 func getSecret(id string, address string, jwtCookie *http.Cookie) tea.Cmd {

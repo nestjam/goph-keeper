@@ -124,8 +124,7 @@ func TestLoginModel_Update(t *testing.T) {
 		assertEqualCmd(t, listCommand.Execute, cmd)
 	})
 	t.Run("error on login", func(t *testing.T) {
-		m := NewLoginModel()
-		sut := tea.Model(m)
+		sut := NewLoginModel()
 		msg := errMsg{errors.New("error")}
 
 		model, _ := sut.Update(msg)

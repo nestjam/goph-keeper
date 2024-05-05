@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"errors"
 	"net/http"
 	"reflect"
 	"testing"
@@ -93,6 +94,26 @@ func TestSecretsModel_Update(t *testing.T) {
 		getSecretCommand := NewGetSecretCommand(wantID, address, jwtCookie)
 		assert.Equal(t, wantID, getSecretCommand.secretID)
 		assertEqualCmd(t, getSecretCommand.execute, cmd)
+	})
+	t.Run("error on get secret", func(t *testing.T) {
+		sut := NewSecretsModel(address, jwtCookie)
+		msg := errMsg{errors.New("error")}
+
+		model, _ := sut.Update(msg)
+
+		got, _ := model.(secretsModel)
+		assert.Equal(t, msg.err, got.err)
+	})
+	t.Run("failed to list secrets", func(t *testing.T) {
+		sut := NewSecretsModel(address, jwtCookie)
+		const want = http.StatusBadRequest
+		msg := listSecretsFailedMsg{statusCode: want}
+
+		model, _ := sut.Update(msg)
+
+		m, _ := model.(secretsModel)
+		got := m.failtureStatusCode
+		assert.Equal(t, want, got)
 	})
 }
 

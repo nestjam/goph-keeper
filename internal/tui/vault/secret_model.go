@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -10,8 +11,10 @@ import (
 )
 
 type secretModel struct {
-	textarea textarea.Model
-	secret   httpVault.Secret
+	textarea           textarea.Model
+	err                error
+	secret             httpVault.Secret
+	failtureStatusCode int
 }
 
 func NewSecretModel() secretModel {
@@ -38,6 +41,16 @@ func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.secret = msg.secret
 			m.textarea.SetValue(m.secret.Data)
 		}
+	case getSecretFailedMsg:
+		{
+			m.failtureStatusCode = msg.statusCode
+			m.textarea.Blur()
+		}
+	case errMsg:
+		{
+			m.err = msg.err
+			m.textarea.Blur()
+		}
 	default:
 	}
 
@@ -49,8 +62,14 @@ func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m secretModel) View() string {
 	s := strings.Builder{}
 
-	s.WriteString(m.secret.ID + "\n\n")
+	if m.err != nil {
+		s.WriteString(fmt.Sprintf(errTemplate, m.err.Error()))
+	}
+	if m.failtureStatusCode != 0 {
+		s.WriteString(fmt.Sprintf(codeTemplate, m.failtureStatusCode))
+	}
 
+	s.WriteString(fmt.Sprintf("id: %s\n\n", m.secret.ID))
 	s.WriteString(m.textarea.View())
 
 	return s.String()

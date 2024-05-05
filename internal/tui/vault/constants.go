@@ -1,5 +1,7 @@
 package vault
 
 const (
-	baseURL = "secrets"
+	baseURL      = "secrets"
+	errTemplate  = "error: %s\n\n"
+	codeTemplate = "code: %d\n\n"
 )

@@ -1,6 +1,8 @@
 package vault
 
 import (
+	"errors"
+	"net/http"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -39,5 +41,25 @@ func TestSecretModel_Update(t *testing.T) {
 		got := m.secret
 		assert.Equal(t, want, got)
 		assert.Nil(t, cmd)
+	})
+	t.Run("error on get secret", func(t *testing.T) {
+		sut := NewSecretModel()
+		msg := errMsg{errors.New("error")}
+
+		model, _ := sut.Update(msg)
+
+		got, _ := model.(secretModel)
+		assert.Equal(t, msg.err, got.err)
+	})
+	t.Run("failed to get secret", func(t *testing.T) {
+		sut := NewSecretModel()
+		const want = http.StatusBadRequest
+		msg := getSecretFailedMsg{statusCode: want}
+
+		model, _ := sut.Update(msg)
+
+		m, _ := model.(secretModel)
+		got := m.failtureStatusCode
+		assert.Equal(t, want, got)
 	})
 }
