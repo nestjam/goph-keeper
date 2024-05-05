@@ -46,7 +46,9 @@ func (c saveSecretCommand) execute() tea.Msg {
 	}
 
 	if resp.IsSuccess() {
-		return saveSecretCompletedMsg{res.Secret}
+		secret := res.Secret
+		secret.Data = c.secret.Data // server does not return secret data
+		return saveSecretCompletedMsg{secret}
 	}
 
 	return saveSecretFailedMsg{resp.StatusCode()}

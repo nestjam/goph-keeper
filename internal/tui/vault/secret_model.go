@@ -55,6 +55,12 @@ func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.secret = httpVault.Secret{}
 			m.isEdited = true
 		}
+	case saveSecretCompletedMsg:
+		{
+			m.secret = msg.secret
+			m.textarea.SetValue(msg.secret.Data)
+			m.isEdited = false
+		}
 	case errMsg:
 		{
 			m.err = msg.err
@@ -68,7 +74,7 @@ func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m *secretModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m secretModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.Type {
 	case tea.KeyCtrlC:
 		return m, tea.Quit
@@ -77,10 +83,10 @@ func (m *secretModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		cmd := listSecrets(m.address, m.jwtCookie)
 		return model, cmd
 	case tea.KeyCtrlS:
-		m.secret.Data = m.textarea.Value()
-		model := *m
-		cmd := saveSecret(m.secret, m.address, m.jwtCookie)
-		return model, cmd
+		secret := m.secret
+		secret.Data = m.textarea.Value()
+		cmd := saveSecret(secret, m.address, m.jwtCookie)
+		return m, cmd
 	default:
 		{
 			var cmd tea.Cmd

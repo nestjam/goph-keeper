@@ -1,13 +1,11 @@
 package vault
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	httpVault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
 )
@@ -18,16 +16,19 @@ func TestSaveSecretCommand(t *testing.T) {
 		wantCookie := &http.Cookie{
 			Name: "jwt",
 		}
+		const secretID = "1"
 		secret := httpVault.Secret{
 			Data: "data",
 		}
-		want := saveSecretCompletedMsg{secret}
+		want := saveSecretCompletedMsg{
+			secret: httpVault.Secret{ID: secretID, Data: secret.Data},
+		}
 		var gotURL string
 		var gotCookie *http.Cookie
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			gotURL = r.URL.String()
 			gotCookie = findCookie(r.Cookies(), "jwt")
-			s := secretFromRequest(t, r)
+			s := httpVault.Secret{ID: secretID} // server does not return secret data
 			_ = writeJSON(w, http.StatusCreated, httpVault.AddSecretResponse{Secret: s})
 		}))
 		defer server.Close()
@@ -78,15 +79,4 @@ func TestSaveSecretCommand(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, http.StatusBadRequest, msg.statusCode)
 	})
-}
-
-func secretFromRequest(t *testing.T, r *http.Request) httpVault.Secret {
-	t.Helper()
-
-	var req httpVault.AddSecretRequest
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&req)
-	require.NoError(t, err)
-
-	return req.Secret
 }
