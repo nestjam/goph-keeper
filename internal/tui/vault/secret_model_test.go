@@ -83,4 +83,31 @@ func TestSecretModel_Update(t *testing.T) {
 		listSecretsCommand := NewListSecretsCommand(address, jwtCookie)
 		assertEqualCmd(t, listSecretsCommand.Execute, cmd)
 	})
+	t.Run("create new secret requested", func(t *testing.T) {
+		want := httpVault.Secret{}
+		msg := createSecretRequestedMsg{}
+		sut := tea.Model(NewSecretModel(address, jwtCookie))
+
+		model, cmd := sut.Update(msg)
+
+		m, _ := model.(secretModel)
+		got := m.secret
+		assert.Equal(t, want, got)
+		assert.True(t, m.isEdited)
+		assert.Nil(t, cmd)
+	})
+	t.Run("save secret by ctrl+s", func(t *testing.T) {
+		sut := NewSecretModel(address, jwtCookie)
+		secret := httpVault.Secret{}
+		sut.secret = secret
+		sut.textarea.SetValue("data")
+		msg := tea.KeyMsg{Type: tea.KeyCtrlS}
+
+		model, cmd := sut.Update(msg)
+
+		_, ok := model.(secretModel)
+		assert.True(t, ok)
+		saveSecretCommand := newSaveSecretCommand(secret, address, jwtCookie)
+		assertEqualCmd(t, saveSecretCommand.execute, cmd)
+	})
 }

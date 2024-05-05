@@ -20,13 +20,13 @@ func TestListSecretsCommand(t *testing.T) {
 		}
 		wantURL := "/secrets"
 		wantCookie := &http.Cookie{
-			Name: "jwt",
+			Name: "auth",
 		}
 		var gotURL string
 		var gotCookie *http.Cookie
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			gotURL = r.URL.String()
-			gotCookie = findCookie(r.Cookies(), "jwt")
+			gotCookie = findCookie(r.Cookies(), "auth")
 			resp := vaultHttp.ListSecretsResponse{
 				List: wantSecrets,
 			}

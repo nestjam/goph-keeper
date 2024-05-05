@@ -156,6 +156,17 @@ func TestSecretsModel_Update(t *testing.T) {
 		assert.True(t, ok)
 		assert.Empty(t, len(m.table.Rows()))
 	})
+	t.Run("add new secret by ctrl+n", func(t *testing.T) {
+		sut := NewSecretsModel(address, jwtCookie)
+		msg := tea.KeyMsg{Type: tea.KeyCtrlN}
+
+		model, cmd := sut.Update(msg)
+
+		_, ok := model.(secretModel)
+		assert.True(t, ok)
+		createSecretCommand := newCreateSecretCommand()
+		assertEqualCmd(t, createSecretCommand.execute, cmd)
+	})
 }
 
 func assertEqualCmd(t *testing.T, want, got tea.Cmd) {

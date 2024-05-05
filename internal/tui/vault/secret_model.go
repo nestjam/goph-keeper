@@ -18,6 +18,7 @@ type secretModel struct {
 	address            string
 	secret             httpVault.Secret
 	failtureStatusCode int
+	isEdited           bool
 }
 
 func NewSecretModel(address string, jwtCookie *http.Cookie) secretModel {
@@ -38,15 +39,7 @@ func (m secretModel) Init() tea.Cmd {
 func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyCtrlC:
-			return m, tea.Quit
-		case tea.KeyEsc:
-			model := NewSecretsModel(m.address, m.jwtCookie)
-			cmd := listSecrets(m.address, m.jwtCookie)
-			return model, cmd
-		default:
-		}
+		return m.handleKeyMsg(msg)
 	case getSecretCompletedMsg:
 		{
 			m.secret = msg.secret
@@ -56,6 +49,11 @@ func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		{
 			m.failtureStatusCode = msg.statusCode
 			m.textarea.Blur()
+		}
+	case createSecretRequestedMsg:
+		{
+			m.secret = httpVault.Secret{}
+			m.isEdited = true
 		}
 	case errMsg:
 		{
@@ -68,6 +66,28 @@ func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.textarea, cmd = m.textarea.Update(msg)
 	return m, cmd
+}
+
+func (m *secretModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyCtrlC:
+		return m, tea.Quit
+	case tea.KeyEsc:
+		model := NewSecretsModel(m.address, m.jwtCookie)
+		cmd := listSecrets(m.address, m.jwtCookie)
+		return model, cmd
+	case tea.KeyCtrlS:
+		m.secret.Data = m.textarea.Value()
+		model := *m
+		cmd := saveSecret(m.secret, m.address, m.jwtCookie)
+		return model, cmd
+	default:
+		{
+			var cmd tea.Cmd
+			m.textarea, cmd = m.textarea.Update(msg)
+			return m, cmd
+		}
+	}
 }
 
 func (m secretModel) View() string {
@@ -89,4 +109,9 @@ func (m secretModel) View() string {
 func listSecrets(address string, jwtCookie *http.Cookie) tea.Cmd {
 	cmd := NewListSecretsCommand(address, jwtCookie)
 	return cmd.Execute
+}
+
+func saveSecret(secret httpVault.Secret, address string, jwtCookie *http.Cookie) tea.Cmd {
+	cmd := newSaveSecretCommand(secret, address, jwtCookie)
+	return cmd.execute
 }

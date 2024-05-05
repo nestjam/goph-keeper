@@ -71,23 +71,7 @@ func (m secretsModel) Init() tea.Cmd {
 func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
-			return m, tea.Quit
-		case tea.KeyEnter:
-			{
-				id := m.table.SelectedRow()[idColumnIndex]
-				model := NewSecretModel(m.address, m.jwtCookie)
-				cmd := getSecret(id, m.address, m.jwtCookie)
-				return model, cmd
-			}
-		case tea.KeyDelete:
-			{
-				id := m.table.SelectedRow()[idColumnIndex]
-				return m, deleteSecret(id, m.address, m.jwtCookie)
-			}
-		default:
-		}
+		return m.handleKeyMsg(msg)
 	case listSecretsCompletedMsg:
 		{
 			m.secrets = msg.secrets
@@ -121,6 +105,39 @@ func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m secretsModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyCtrlC, tea.KeyEsc:
+		return m, tea.Quit
+	case tea.KeyEnter:
+		{
+			id := m.getSelectedSecretID()
+			model := NewSecretModel(m.address, m.jwtCookie)
+			cmd := getSecret(id, m.address, m.jwtCookie)
+			return model, cmd
+		}
+	case tea.KeyDelete:
+		{
+			id := m.getSelectedSecretID()
+			model := m
+			cmd := deleteSecret(id, m.address, m.jwtCookie)
+			return model, cmd
+		}
+	case tea.KeyCtrlN:
+		{
+			model := NewSecretModel(m.address, m.jwtCookie)
+			cmd := createSecret()
+			return model, cmd
+		}
+	default:
+		{
+			var cmd tea.Cmd
+			m.table, cmd = m.table.Update(msg)
+			return m, cmd
+		}
+	}
+}
+
 func (m secretsModel) View() string {
 	s := strings.Builder{}
 
@@ -136,6 +153,10 @@ func (m secretsModel) View() string {
 	return s.String()
 }
 
+func (m *secretsModel) getSelectedSecretID() string {
+	return m.table.SelectedRow()[idColumnIndex]
+}
+
 func getSecret(id string, address string, jwtCookie *http.Cookie) tea.Cmd {
 	cmd := newGetSecretCommand(id, address, jwtCookie)
 	return cmd.execute
@@ -146,15 +167,20 @@ func deleteSecret(id string, address string, jwtCookie *http.Cookie) tea.Cmd {
 	return cmd.execute
 }
 
+func createSecret() tea.Cmd {
+	cmd := newCreateSecretCommand()
+	return cmd.execute
+}
+
 func deleteRow(id string, rows []table.Row) []table.Row {
-	i := getIndex(id, rows)
+	i := findIndex(id, rows)
 	if i < 0 {
 		return rows
 	}
 	return append(rows[:i], rows[i+1:]...)
 }
 
-func getIndex(id string, rows []table.Row) int {
+func findIndex(id string, rows []table.Row) int {
 	for i := 0; i < len(rows); i++ {
 		row := rows[i]
 		if row[idColumnIndex] == id {

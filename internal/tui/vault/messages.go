@@ -31,3 +31,14 @@ type deleteSecretCompletedMsg struct {
 type deleteSecretFailedMsg struct {
 	statusCode int
 }
+
+type createSecretRequestedMsg struct {
+}
+
+type saveSecretCompletedMsg struct {
+	secret httpVault.Secret
+}
+
+type saveSecretFailedMsg struct {
+	statusCode int
+}

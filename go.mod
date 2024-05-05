@@ -3,6 +3,8 @@ module github.com/nestjam/goph-keeper
 go 1.21.1
 
 require (
+	github.com/charmbracelet/bubbletea v0.26.1
+	github.com/charmbracelet/lipgloss v0.9.1
 	github.com/go-resty/resty/v2 v2.12.0
 	github.com/lestrrat-go/jwx/v2 v2.0.20
 	github.com/pkg/errors v0.9.1
@@ -11,8 +13,6 @@ require (
 require (
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/charmbracelet/bubbletea v0.26.1 // indirect
-	github.com/charmbracelet/lipgloss v0.9.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
