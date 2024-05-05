@@ -11,49 +11,47 @@ import (
 	httpVault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
 )
 
-type listSecretsCommand struct {
+type getSecretCommand struct {
 	jwtCookie *http.Cookie
 	address   string
+	secretID  string
 }
 
-func NewListSecretsCommand(address string, jwtCookie *http.Cookie) listSecretsCommand {
-	return listSecretsCommand{
+func NewGetSecretCommand(secretID, address string, jwtCookie *http.Cookie) getSecretCommand {
+	return getSecretCommand{
+		secretID:  secretID,
 		address:   address,
 		jwtCookie: jwtCookie,
 	}
 }
 
-func (c listSecretsCommand) Execute() tea.Msg {
+func (c getSecretCommand) execute() tea.Msg {
 	client := resty.New()
 
 	//nolint:gosec // using self-signed certificate
 	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 
-	url, err := url.JoinPath(c.address, baseURL)
+	url, err := url.JoinPath(c.address, baseURL, c.secretID)
 	if err != nil {
 		return errMsg{err}
 	}
-	var res httpVault.ListSecretsResponse
+	var res httpVault.GetSecretResponse
 	resp, err := client.R().SetResult(&res).SetCookie(c.jwtCookie).Get(url)
 	if err != nil {
 		return errMsg{err}
 	}
 
 	if resp.IsSuccess() {
-		return listSecretsCompletedMsg{res.List}
+		return getSecretCompletedMsg{res.Secret}
 	}
 
-	return listSecretsFailedMsg{resp.StatusCode()}
+	return getSecretFailedMsg{resp.StatusCode()}
 }
 
-type listSecretsCompletedMsg struct {
-	secrets []httpVault.Secret
+type getSecretCompletedMsg struct {
+	secret httpVault.Secret
 }
 
-type listSecretsFailedMsg struct {
+type getSecretFailedMsg struct {
 	statusCode int
-}
-
-type errMsg struct {
-	err error
 }

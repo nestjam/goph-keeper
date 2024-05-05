@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"net/http"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -15,12 +16,14 @@ var baseStyle = lipgloss.NewStyle().
 	BorderForeground(lipgloss.Color("240"))
 
 type secretsModel struct {
-	secrets []httpVault.Secret
+	address   string
+	jwtCookie *http.Cookie
+	secrets   []httpVault.Secret
 
 	table table.Model
 }
 
-func NewSecretsModel() secretsModel {
+func NewSecretsModel(address string, jwtCookie *http.Cookie) secretsModel {
 	const (
 		numWidth    = 4
 		idWidth     = 60
@@ -50,7 +53,9 @@ func NewSecretsModel() secretsModel {
 	t.SetStyles(s)
 
 	return secretsModel{
-		table: t,
+		address:   address,
+		jwtCookie: jwtCookie,
+		table:     t,
 	}
 }
 
@@ -61,8 +66,14 @@ func (m secretsModel) Init() tea.Cmd {
 func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.Type == tea.KeyCtrlC || msg.Type == tea.KeyEsc {
+		switch msg.Type {
+		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
+		case tea.KeyEnter:
+			const idColumnIndex = 1
+			id := m.table.SelectedRow()[idColumnIndex]
+			return NewSecretModel(), getSecret(id, m.address, m.jwtCookie)
+		default:
 		}
 	case listSecretsCompletedMsg:
 		{
@@ -83,4 +94,9 @@ func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m secretsModel) View() string {
 	return baseStyle.Render(m.table.View()) + "\n"
+}
+
+func getSecret(id string, address string, jwtCookie *http.Cookie) tea.Cmd {
+	cmd := NewGetSecretCommand(id, address, jwtCookie)
+	return cmd.execute
 }

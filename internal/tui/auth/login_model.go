@@ -50,7 +50,7 @@ func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case loginCompletedMsg:
 		{
-			return vault.NewSecretsModel(), listSecrets(m.serverAddress, msg.jwtCookie)
+			return vault.NewSecretsModel(m.serverAddress, msg.jwtCookie), listSecrets(m.serverAddress, msg.jwtCookie)
 		}
 	case loginFailedMsg:
 		{
