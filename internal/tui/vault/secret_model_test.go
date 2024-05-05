@@ -12,7 +12,12 @@ import (
 )
 
 func TestSecretModel_Init(t *testing.T) {
-	sut := NewSecretModel()
+	var (
+		address   = "/"
+		jwtCookie = &http.Cookie{}
+	)
+
+	sut := NewSecretModel(address, jwtCookie)
 
 	got := sut.Init()
 
@@ -20,8 +25,13 @@ func TestSecretModel_Init(t *testing.T) {
 }
 
 func TestSecretModel_Update(t *testing.T) {
+	var (
+		address   = "/"
+		jwtCookie = &http.Cookie{}
+	)
+
 	t.Run("user exited by ctrl+c", func(t *testing.T) {
-		sut := NewSecretModel()
+		sut := NewSecretModel(address, jwtCookie)
 		msg := tea.KeyMsg{Type: tea.KeyCtrlC}
 
 		_, cmd := sut.Update(msg)
@@ -29,7 +39,7 @@ func TestSecretModel_Update(t *testing.T) {
 		assertEqualCmd(t, tea.Quit, cmd)
 	})
 	t.Run("get secret request completed", func(t *testing.T) {
-		sut := tea.Model(NewSecretModel())
+		sut := tea.Model(NewSecretModel(address, jwtCookie))
 		want := httpVault.Secret{ID: "1", Data: "data"}
 		msg := getSecretCompletedMsg{
 			secret: want,
@@ -43,7 +53,7 @@ func TestSecretModel_Update(t *testing.T) {
 		assert.Nil(t, cmd)
 	})
 	t.Run("error on get secret", func(t *testing.T) {
-		sut := NewSecretModel()
+		sut := NewSecretModel(address, jwtCookie)
 		msg := errMsg{errors.New("error")}
 
 		model, _ := sut.Update(msg)
@@ -52,7 +62,7 @@ func TestSecretModel_Update(t *testing.T) {
 		assert.Equal(t, msg.err, got.err)
 	})
 	t.Run("failed to get secret", func(t *testing.T) {
-		sut := NewSecretModel()
+		sut := NewSecretModel(address, jwtCookie)
 		const want = http.StatusBadRequest
 		msg := getSecretFailedMsg{statusCode: want}
 
@@ -61,5 +71,16 @@ func TestSecretModel_Update(t *testing.T) {
 		m, _ := model.(secretModel)
 		got := m.failtureStatusCode
 		assert.Equal(t, want, got)
+	})
+	t.Run("return to list of secrets on esc", func(t *testing.T) {
+		sut := NewSecretModel(address, jwtCookie)
+		msg := tea.KeyMsg{Type: tea.KeyEsc}
+
+		model, cmd := sut.Update(msg)
+
+		_, ok := model.(secretsModel)
+		assert.True(t, ok)
+		listSecretsCommand := NewListSecretsCommand(address, jwtCookie)
+		assertEqualCmd(t, listSecretsCommand.Execute, cmd)
 	})
 }

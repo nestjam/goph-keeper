@@ -91,7 +91,7 @@ func TestSecretsModel_Update(t *testing.T) {
 
 		_, ok := model.(secretModel)
 		assert.True(t, ok)
-		getSecretCommand := NewGetSecretCommand(wantID, address, jwtCookie)
+		getSecretCommand := newGetSecretCommand(wantID, address, jwtCookie)
 		assert.Equal(t, wantID, getSecretCommand.secretID)
 		assertEqualCmd(t, getSecretCommand.execute, cmd)
 	})

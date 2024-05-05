@@ -73,9 +73,13 @@ func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		case tea.KeyEnter:
-			const idColumnIndex = 1
-			id := m.table.SelectedRow()[idColumnIndex]
-			return NewSecretModel(), getSecret(id, m.address, m.jwtCookie)
+			{
+				const idColumnIndex = 1
+				id := m.table.SelectedRow()[idColumnIndex]
+				model := NewSecretModel(m.address, m.jwtCookie)
+				cmd := getSecret(id, m.address, m.jwtCookie)
+				return model, cmd
+			}
 		default:
 		}
 	case listSecretsCompletedMsg:
@@ -121,6 +125,6 @@ func (m secretsModel) View() string {
 }
 
 func getSecret(id string, address string, jwtCookie *http.Cookie) tea.Cmd {
-	cmd := NewGetSecretCommand(id, address, jwtCookie)
+	cmd := newGetSecretCommand(id, address, jwtCookie)
 	return cmd.execute
 }

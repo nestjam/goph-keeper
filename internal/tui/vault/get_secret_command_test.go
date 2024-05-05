@@ -32,7 +32,7 @@ func TestGetSecretCommand(t *testing.T) {
 			_ = writeJSON(w, http.StatusOK, resp)
 		}))
 		defer server.Close()
-		sut := NewGetSecretCommand(secretID, server.URL, wantCookie)
+		sut := newGetSecretCommand(secretID, server.URL, wantCookie)
 
 		got := sut.execute()
 
@@ -55,7 +55,7 @@ func TestGetSecretCommand(t *testing.T) {
 		server := httptest.NewServer(nil)
 		serverURL := server.URL
 		server.Close()
-		sut := NewGetSecretCommand(secretID, serverURL, &http.Cookie{})
+		sut := newGetSecretCommand(secretID, serverURL, &http.Cookie{})
 
 		got := sut.execute()
 
@@ -67,7 +67,7 @@ func TestGetSecretCommand(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}))
 		defer server.Close()
-		sut := NewGetSecretCommand(secretID, server.URL, &http.Cookie{})
+		sut := newGetSecretCommand(secretID, server.URL, &http.Cookie{})
 
 		got := sut.execute()
 

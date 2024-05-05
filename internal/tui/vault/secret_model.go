@@ -2,6 +2,7 @@ package vault
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -13,15 +14,21 @@ import (
 type secretModel struct {
 	textarea           textarea.Model
 	err                error
+	jwtCookie          *http.Cookie
+	address            string
 	secret             httpVault.Secret
 	failtureStatusCode int
 }
 
-func NewSecretModel() secretModel {
+func NewSecretModel(address string, jwtCookie *http.Cookie) secretModel {
 	ti := textarea.New()
 	ti.Focus()
 
-	return secretModel{textarea: ti}
+	return secretModel{
+		textarea:  ti,
+		address:   address,
+		jwtCookie: jwtCookie,
+	}
 }
 
 func (m secretModel) Init() tea.Cmd {
@@ -34,6 +41,10 @@ func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC:
 			return m, tea.Quit
+		case tea.KeyEsc:
+			model := NewSecretsModel(m.address, m.jwtCookie)
+			cmd := listSecrets(m.address, m.jwtCookie)
+			return model, cmd
 		default:
 		}
 	case getSecretCompletedMsg:
@@ -73,4 +84,9 @@ func (m secretModel) View() string {
 	s.WriteString(m.textarea.View())
 
 	return s.String()
+}
+
+func listSecrets(address string, jwtCookie *http.Cookie) tea.Cmd {
+	cmd := NewListSecretsCommand(address, jwtCookie)
+	return cmd.Execute
 }

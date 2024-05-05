@@ -17,7 +17,7 @@ type getSecretCommand struct {
 	secretID  string
 }
 
-func NewGetSecretCommand(secretID, address string, jwtCookie *http.Cookie) getSecretCommand {
+func newGetSecretCommand(secretID, address string, jwtCookie *http.Cookie) getSecretCommand {
 	return getSecretCommand{
 		secretID:  secretID,
 		address:   address,
@@ -46,12 +46,4 @@ func (c getSecretCommand) execute() tea.Msg {
 	}
 
 	return getSecretFailedMsg{resp.StatusCode()}
-}
-
-type getSecretCompletedMsg struct {
-	secret httpVault.Secret
-}
-
-type getSecretFailedMsg struct {
-	statusCode int
 }

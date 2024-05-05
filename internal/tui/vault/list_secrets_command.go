@@ -45,15 +45,3 @@ func (c listSecretsCommand) Execute() tea.Msg {
 
 	return listSecretsFailedMsg{resp.StatusCode()}
 }
-
-type listSecretsCompletedMsg struct {
-	secrets []httpVault.Secret
-}
-
-type listSecretsFailedMsg struct {
-	statusCode int
-}
-
-type errMsg struct {
-	err error
-}
