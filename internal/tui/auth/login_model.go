@@ -35,19 +35,7 @@ func (m loginModel) Init() tea.Cmd {
 func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
-			return m, tea.Quit
-		case tea.KeyEnter:
-			input := m.textinput.Value()
-			acceptInput(&m, input)
-
-			if canLogin(m.serverAddress, m.email, m.password) {
-				return m, login(m.serverAddress, m.email, m.password)
-			}
-			return m, nil
-		default:
-		}
+		return handleKeyMsg(msg, m)
 	case loginCompletedMsg:
 		{
 			return vault.NewSecretsModel(m.serverAddress, msg.jwtCookie), listSecrets(m.serverAddress, msg.jwtCookie)
@@ -70,24 +58,47 @@ func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func handleKeyMsg(msg tea.KeyMsg, m loginModel) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyCtrlC, tea.KeyEsc:
+		return m, tea.Quit
+	case tea.KeyEnter:
+		input := m.textinput.Value()
+		acceptInput(&m, input)
+
+		if canLogin(m.serverAddress, m.email, m.password) {
+			return m, login(m.serverAddress, m.email, m.password)
+		}
+		return m, nil
+	default:
+		var cmd tea.Cmd
+		m.textinput, cmd = m.textinput.Update(msg)
+		return m, cmd
+	}
+}
+
 func (m loginModel) View() string {
 	s := strings.Builder{}
 
 	if m.serverAddress != "" {
 		s.WriteString("server: ")
-		s.WriteString(m.serverAddress + "\n\n")
+		s.WriteString(m.serverAddress)
+		s.WriteString("\n")
 	}
 	if m.email != "" {
 		s.WriteString("email: ")
-		s.WriteString(m.email + "\n\n")
+		s.WriteString(m.email)
+		s.WriteString("\n")
 	}
 	if m.password != "" {
 		s.WriteString("password: ")
-		s.WriteString(m.password + "\n\n")
+		s.WriteString(m.password)
+		s.WriteString("\n")
 	}
 	if m.err != nil {
 		s.WriteString("error: ")
-		s.WriteString(m.err.Error() + "\n\n")
+		s.WriteString(m.err.Error())
+		s.WriteString("\n")
 	}
 
 	s.WriteString(m.textinput.View())
