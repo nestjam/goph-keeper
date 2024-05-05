@@ -59,7 +59,7 @@ func TestLoginModel_Update(t *testing.T) {
 		model, cmd := sut.Update(msg)
 
 		got, _ := model.(loginModel)
-		assert.Equal(t, input, got.serverAddress)
+		assert.Equal(t, input, got.address)
 		assert.Equal(t, "", got.textinput.Value())
 		assert.Equal(t, "Enter email", got.textinput.Placeholder)
 		assert.Nil(t, cmd)
@@ -71,13 +71,13 @@ func TestLoginModel_Update(t *testing.T) {
 		model, cmd := sut.Update(msg)
 
 		got, _ := model.(loginModel)
-		assert.Equal(t, "", got.serverAddress)
+		assert.Equal(t, "", got.address)
 		assert.Equal(t, "Enter server address", got.textinput.Placeholder)
 		assert.Nil(t, cmd)
 	})
 	t.Run("user entered email", func(t *testing.T) {
 		m := NewLoginModel()
-		m.serverAddress = "localhost:8080"
+		m.address = "localhost:8080"
 		sut := tea.Model(m)
 
 		const input = "user@email.com"
@@ -95,7 +95,7 @@ func TestLoginModel_Update(t *testing.T) {
 	})
 	t.Run("user entered password", func(t *testing.T) {
 		m := NewLoginModel()
-		m.serverAddress = "localhost:8080"
+		m.address = "localhost:8080"
 		m.email = "user@mail.com"
 		sut := tea.Model(m)
 
@@ -123,6 +123,18 @@ func TestLoginModel_Update(t *testing.T) {
 		listCommand := vault.NewListSecretsCommand("", nil)
 		assertEqualCmd(t, listCommand.Execute, cmd)
 	})
+	t.Run("register completed", func(t *testing.T) {
+		m := NewLoginModel()
+		sut := tea.Model(m)
+		msg := registerCompletedMsg{}
+
+		model, cmd := sut.Update(msg)
+
+		secretsModel := vault.NewSecretsModel("", nil)
+		assert.IsType(t, secretsModel, model)
+		listCommand := vault.NewListSecretsCommand("", nil)
+		assertEqualCmd(t, listCommand.Execute, cmd)
+	})
 	t.Run("error on login", func(t *testing.T) {
 		sut := NewLoginModel()
 		msg := errMsg{errors.New("error")}
@@ -134,7 +146,7 @@ func TestLoginModel_Update(t *testing.T) {
 	})
 	t.Run("failed to login", func(t *testing.T) {
 		m := NewLoginModel()
-		m.serverAddress = "localhost:8080"
+		m.address = "localhost:8080"
 		m.email = "user@mail.com"
 		m.password = "1234"
 		sut := tea.Model(m)
@@ -145,6 +157,90 @@ func TestLoginModel_Update(t *testing.T) {
 		got, _ := model.(loginModel)
 		assert.Empty(t, got.email)
 		assert.Empty(t, got.password)
+	})
+	t.Run("failed to register", func(t *testing.T) {
+		m := NewLoginModel()
+		m.address = "localhost:8080"
+		m.email = "user@mail.com"
+		m.password = "1234"
+		sut := tea.Model(m)
+		msg := registerFailedMsg{statusCode: http.StatusUnauthorized}
+
+		model, _ := sut.Update(msg)
+
+		got, _ := model.(loginModel)
+		assert.Empty(t, got.email)
+		assert.Empty(t, got.password)
+	})
+	t.Run("key down pressed from login choice", func(t *testing.T) {
+		msg := tea.KeyMsg{Type: tea.KeyDown}
+		const want = 1
+		sut := NewLoginModel()
+
+		model, cmd := sut.Update(msg)
+
+		m, ok := model.(loginModel)
+		assert.True(t, ok)
+		got := m.cursor
+		assert.Equal(t, want, got)
+		assert.Nil(t, cmd)
+	})
+	t.Run("key up pressed from login choice", func(t *testing.T) {
+		msg := tea.KeyMsg{Type: tea.KeyUp}
+		const want = 1
+		sut := NewLoginModel()
+
+		model, cmd := sut.Update(msg)
+
+		m, ok := model.(loginModel)
+		assert.True(t, ok)
+		got := m.cursor
+		assert.Equal(t, want, got)
+		assert.Nil(t, cmd)
+	})
+	t.Run("key down pressed from register choice", func(t *testing.T) {
+		msg := tea.KeyMsg{Type: tea.KeyDown}
+		const want = 0
+		sut := NewLoginModel()
+		sut.cursor = 1
+
+		model, cmd := sut.Update(msg)
+
+		m, ok := model.(loginModel)
+		assert.True(t, ok)
+		got := m.cursor
+		assert.Equal(t, want, got)
+		assert.Nil(t, cmd)
+	})
+	t.Run("key up pressed from register choice", func(t *testing.T) {
+		msg := tea.KeyMsg{Type: tea.KeyUp}
+		const want = 0
+		sut := NewLoginModel()
+		sut.cursor = 1
+
+		model, cmd := sut.Update(msg)
+
+		m, ok := model.(loginModel)
+		assert.True(t, ok)
+		got := m.cursor
+		assert.Equal(t, want, got)
+		assert.Nil(t, cmd)
+	})
+	t.Run("user pressed enter to register", func(t *testing.T) {
+		m := NewLoginModel()
+		m.address = "localhost:8080"
+		m.email = "user@mail.com"
+		m.password = "1234"
+		m.cursor = 1
+		sut := tea.Model(m)
+		msg := tea.KeyMsg{Type: tea.KeyEnter}
+
+		model, cmd := sut.Update(msg)
+
+		_, ok := model.(loginModel)
+		assert.True(t, ok)
+		registerCmd := registerCommand{}
+		assertEqualCmd(t, registerCmd.execute, cmd)
 	})
 }
 

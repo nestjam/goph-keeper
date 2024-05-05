@@ -2,7 +2,6 @@ package auth
 
 import (
 	"crypto/tls"
-	"net/http"
 	"net/url"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,24 +11,32 @@ import (
 	"github.com/nestjam/goph-keeper/internal/utils"
 )
 
-type loginCommand struct {
+type registerCommand struct {
 	address  string
 	email    string
 	password string
 }
 
-//nolint:dupl // registerCommand is not duplicate
-func (c loginCommand) execute() tea.Msg {
+func newRegisterCommand(address, email, password string) registerCommand {
+	return registerCommand{
+		address:  address,
+		email:    email,
+		password: password,
+	}
+}
+
+//nolint:dupl // loginCommand is not duplicate
+func (c registerCommand) execute() tea.Msg {
 	client := resty.New()
 
 	//nolint:gosec // using self-signed certificate
 	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 
-	req := httpAuth.LoginUserRequest{
+	req := httpAuth.RegisterUserRequest{
 		Email:    c.email,
 		Password: c.password,
 	}
-	url, err := url.JoinPath(c.address, "login")
+	url, err := url.JoinPath(c.address, "register")
 	if err != nil {
 		return errMsg{err}
 	}
@@ -45,20 +52,10 @@ func (c loginCommand) execute() tea.Msg {
 			return errMsg{ErrAuthTokenNotFound}
 		}
 
-		return loginCompletedMsg{
+		return registerCompletedMsg{
 			jwtCookie: jwtCookie,
 		}
 	}
 
-	return loginFailedMsg{resp.StatusCode()}
-}
-
-func findCookie(cookies []*http.Cookie, name string) *http.Cookie {
-	for i := 0; i < len(cookies); i++ {
-		if cookies[i].Name == name {
-			return cookies[i]
-		}
-	}
-
-	return nil
+	return registerFailedMsg{resp.StatusCode()}
 }
