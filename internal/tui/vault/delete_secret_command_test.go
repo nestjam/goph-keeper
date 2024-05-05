@@ -6,43 +6,34 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	vaultHttp "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
 )
 
-func TestGetSecretCommand(t *testing.T) {
-	t.Run("get secret", func(t *testing.T) {
-		const secretID = "11"
-		wantSecret := vaultHttp.Secret{
-			ID:   secretID,
-			Data: "data",
-		}
+func TestDeleteSecretCommand(t *testing.T) {
+	t.Run("delete secret", func(t *testing.T) {
+		const secretID = "1"
 		wantURL := "/secrets/" + secretID
 		wantCookie := &http.Cookie{
 			Name: "jwt",
 		}
+		want := deleteSecretCompletedMsg{secretID}
 		var gotURL string
 		var gotCookie *http.Cookie
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			gotURL = r.URL.String()
 			gotCookie = findCookie(r.Cookies(), "jwt")
-			resp := vaultHttp.GetSecretResponse{
-				Secret: wantSecret,
-			}
-			_ = writeJSON(w, http.StatusOK, resp)
+			w.WriteHeader(http.StatusOK)
 		}))
 		defer server.Close()
-		sut := newGetSecretCommand(secretID, server.URL, wantCookie)
+		sut := newDeleteSecretCommand(secretID, server.URL, wantCookie)
 
 		got := sut.execute()
 
 		assert.Equal(t, wantURL, gotURL)
 		assert.Equal(t, wantCookie, gotCookie)
-		want := getSecretCompletedMsg{wantSecret}
 		assert.Equal(t, want, got)
 	})
 	t.Run("invalid server address", func(t *testing.T) {
-		sut := getSecretCommand{
+		sut := deleteSecretCommand{
 			address: string([]byte{0x7f}), // ASCII control character
 		}
 
@@ -55,25 +46,24 @@ func TestGetSecretCommand(t *testing.T) {
 		server := httptest.NewServer(nil)
 		serverURL := server.URL
 		server.Close()
-		sut := newGetSecretCommand(secretID, serverURL, &http.Cookie{})
+		sut := newDeleteSecretCommand(secretID, serverURL, &http.Cookie{})
 
 		got := sut.execute()
 
 		assert.IsType(t, errMsg{}, got)
 	})
-	t.Run("get secret failed", func(t *testing.T) {
+	t.Run("delete secret failed", func(t *testing.T) {
 		const secretID = "1"
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusNotFound)
 		}))
 		defer server.Close()
-		jwtCookie := &http.Cookie{}
-		sut := newGetSecretCommand(secretID, server.URL, jwtCookie)
+		sut := newDeleteSecretCommand(secretID, server.URL, &http.Cookie{})
 
 		got := sut.execute()
 
-		msg, ok := got.(getSecretFailedMsg)
+		msg, ok := got.(deleteSecretFailedMsg)
 		assert.True(t, ok)
-		assert.Equal(t, http.StatusInternalServerError, msg.statusCode)
+		assert.Equal(t, http.StatusNotFound, msg.statusCode)
 	})
 }

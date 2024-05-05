@@ -13,6 +13,8 @@ import (
 	httpVault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
 )
 
+const idColumnIndex = 1
+
 var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
@@ -74,11 +76,15 @@ func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case tea.KeyEnter:
 			{
-				const idColumnIndex = 1
 				id := m.table.SelectedRow()[idColumnIndex]
 				model := NewSecretModel(m.address, m.jwtCookie)
 				cmd := getSecret(id, m.address, m.jwtCookie)
 				return model, cmd
+			}
+		case tea.KeyDelete:
+			{
+				id := m.table.SelectedRow()[idColumnIndex]
+				return m, deleteSecret(id, m.address, m.jwtCookie)
 			}
 		default:
 		}
@@ -96,6 +102,12 @@ func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		{
 			m.failtureStatusCode = msg.statusCode
 			m.table.Blur()
+		}
+	case deleteSecretCompletedMsg:
+		{
+			rows := m.table.Rows()
+			rows = deleteRow(msg.secretID, rows)
+			m.table.SetRows(rows)
 		}
 	case errMsg:
 		{
@@ -127,4 +139,27 @@ func (m secretsModel) View() string {
 func getSecret(id string, address string, jwtCookie *http.Cookie) tea.Cmd {
 	cmd := newGetSecretCommand(id, address, jwtCookie)
 	return cmd.execute
+}
+
+func deleteSecret(id string, address string, jwtCookie *http.Cookie) tea.Cmd {
+	cmd := newDeleteSecretCommand(id, address, jwtCookie)
+	return cmd.execute
+}
+
+func deleteRow(id string, rows []table.Row) []table.Row {
+	i := getIndex(id, rows)
+	if i < 0 {
+		return rows
+	}
+	return append(rows[:i], rows[i+1:]...)
+}
+
+func getIndex(id string, rows []table.Row) int {
+	for i := 0; i < len(rows); i++ {
+		row := rows[i]
+		if row[idColumnIndex] == id {
+			return i
+		}
+	}
+	return -1
 }

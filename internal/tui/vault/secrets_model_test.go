@@ -115,6 +115,47 @@ func TestSecretsModel_Update(t *testing.T) {
 		got := m.failtureStatusCode
 		assert.Equal(t, want, got)
 	})
+	t.Run("delete selected secret on del", func(t *testing.T) {
+		sut := NewSecretsModel(address, jwtCookie)
+		secrets := []httpVault.Secret{
+			{ID: "2"},
+		}
+		sut.secrets = secrets
+		rows := []table.Row{
+			{"1", "2"},
+		}
+		sut.table.SetRows(rows)
+		sut.table.GotoTop()
+		const wantID = "2"
+		msg := tea.KeyMsg{Type: tea.KeyDelete}
+
+		model, cmd := sut.Update(msg)
+
+		_, ok := model.(secretsModel)
+		assert.True(t, ok)
+		deleteSecretCommand := newDeleteSecretCommand(wantID, address, jwtCookie)
+		assertEqualCmd(t, deleteSecretCommand.execute, cmd)
+	})
+	t.Run("selected secret deleted", func(t *testing.T) {
+		const secretID = "2"
+		secrets := []httpVault.Secret{
+			{ID: secretID},
+		}
+		sut := NewSecretsModel(address, jwtCookie)
+		sut.secrets = secrets
+		rows := []table.Row{
+			{"1", secretID},
+		}
+		sut.table.SetRows(rows)
+		sut.table.GotoTop()
+		msg := deleteSecretCompletedMsg{secretID}
+
+		model, _ := sut.Update(msg)
+
+		m, ok := model.(secretsModel)
+		assert.True(t, ok)
+		assert.Empty(t, len(m.table.Rows()))
+	})
 }
 
 func assertEqualCmd(t *testing.T, want, got tea.Cmd) {

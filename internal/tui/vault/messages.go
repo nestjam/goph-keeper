@@ -23,3 +23,11 @@ type getSecretCompletedMsg struct {
 type getSecretFailedMsg struct {
 	statusCode int
 }
+
+type deleteSecretCompletedMsg struct {
+	secretID string
+}
+
+type deleteSecretFailedMsg struct {
+	statusCode int
+}
