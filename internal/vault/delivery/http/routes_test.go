@@ -120,6 +120,35 @@ func TestMapVaultRoutes(t *testing.T) {
 
 		assert.Equal(t, 1, spy.deleteSecretCallsCount)
 	})
+
+	t.Run("edit secret", func(t *testing.T) {
+		t.Run("edit sensitive data", func(t *testing.T) {
+			spy := &vaultHandlersSpy{}
+			sut := chi.NewRouter()
+
+			MapVaultRoutes(sut, spy, config)
+			secret := Secret{ID: uuid.New().String()}
+			r := newUpdateSecretRequest(t, secretsPath, secret)
+			userID := uuid.New()
+			setAuthCookie(t, r, config, userID)
+			w := httptest.NewRecorder()
+
+			sut.ServeHTTP(w, r)
+
+			assert.Equal(t, 1, spy.updateSecretCallsCount)
+		})
+	})
+}
+
+func newUpdateSecretRequest(t *testing.T, path string, secret Secret) *http.Request {
+	t.Helper()
+
+	req := UpdateSecretRequest{Secret: secret}
+	content, err := json.Marshal(req)
+	require.NoError(t, err)
+	r := httptest.NewRequest(http.MethodPatch, path+"/"+secret.ID, bytes.NewReader(content))
+	r.Header.Set(contentTypeHeader, applicationJSON)
+	return r
 }
 
 func newDeleteSecretRequest(t *testing.T, path string, secretID uuid.UUID) *http.Request {

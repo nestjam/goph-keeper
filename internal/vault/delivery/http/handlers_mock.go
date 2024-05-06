@@ -12,6 +12,7 @@ type vaultHandlersSpy struct {
 	addSecretCallsCount    int
 	getSecretCallsCount    int
 	deleteSecretCallsCount int
+	updateSecretCallsCount int
 }
 
 func (m *vaultHandlersSpy) ListSecrets() http.HandlerFunc {
@@ -24,6 +25,13 @@ func (m *vaultHandlersSpy) ListSecrets() http.HandlerFunc {
 func (m *vaultHandlersSpy) AddSecret() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		m.addSecretCallsCount++
+		_, m.claims, _ = jwtauth.FromContext(r.Context())
+	})
+}
+
+func (m *vaultHandlersSpy) UpdateSecret() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		m.updateSecretCallsCount++
 		_, m.claims, _ = jwtauth.FromContext(r.Context())
 	})
 }

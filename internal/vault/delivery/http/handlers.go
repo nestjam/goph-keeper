@@ -65,7 +65,7 @@ func (h *VaultHandlers) AddSecret() http.HandlerFunc {
 			return
 		}
 
-		secret, err := secretFromRequest(r)
+		secret, err := secretFromAddRequest(r)
 		if err != nil {
 			writeInternalServerError(w)
 			return
@@ -83,6 +83,39 @@ func (h *VaultHandlers) AddSecret() http.HandlerFunc {
 			writeInternalServerError(w)
 			return
 		}
+	})
+}
+
+func (h *VaultHandlers) UpdateSecret() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		key := chi.URLParam(r, secretParam)
+		secretID, err := uuid.Parse(key)
+		if err != nil {
+			writeBadRequest(w)
+			return
+		}
+
+		ctx := r.Context()
+		userID, err := utils.UserFromContext(ctx)
+		if err != nil {
+			writeInternalServerError(w)
+			return
+		}
+
+		secret, err := secretFromUpdateRequest(r)
+		if err != nil {
+			writeInternalServerError(w)
+			return
+		}
+		secret.ID = secretID
+
+		_, err = h.service.UpdateSecret(ctx, secret, userID)
+		if err != nil {
+			writeInternalServerError(w)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
 	})
 }
 
@@ -152,10 +185,26 @@ func newGetSecretResponse(secret *model.Secret) GetSecretResponse {
 	}
 }
 
-func secretFromRequest(r *http.Request) (*model.Secret, error) {
+func secretFromAddRequest(r *http.Request) (*model.Secret, error) {
 	const op = "get secret"
 
 	var req AddSecretRequest
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&req)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	secret := &model.Secret{
+		Data: []byte(req.Secret.Data),
+	}
+	return secret, nil
+}
+
+func secretFromUpdateRequest(r *http.Request) (*model.Secret, error) {
+	const op = "update secret"
+
+	var req UpdateSecretRequest
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&req)
 	if err != nil {
@@ -203,8 +252,8 @@ func newListSecretsResponse(secrets []*model.Secret) *ListSecretsResponse {
 	return resp
 }
 
-func newAddSecretResponse(secret *model.Secret) *AddSecretResponse {
-	return &AddSecretResponse{
+func newAddSecretResponse(secret *model.Secret) AddSecretResponse {
+	return AddSecretResponse{
 		Secret: Secret{
 			ID: secret.ID.String(),
 		},

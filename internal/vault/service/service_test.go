@@ -48,6 +48,51 @@ func TestAddSecret(t *testing.T) {
 	})
 }
 
+func TestUpdateSecret(t *testing.T) {
+	t.Run("update secret", func(t *testing.T) {
+		ctx := context.Background()
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		rootKey := randomMasterKey(t)
+		sut := NewVaultService(secretRepo, keyRepo, rootKey)
+		secret := &model.Secret{
+			ID: uuid.New(),
+		}
+		userID := uuid.New()
+		_, err := secretRepo.AddSecret(ctx, secret, userID)
+		require.NoError(t, err)
+		secret.Data = []byte("edited text")
+
+		updated, err := sut.UpdateSecret(ctx, secret, userID)
+
+		require.NoError(t, err)
+		stored, err := secretRepo.GetSecret(ctx, secret.ID, userID)
+		require.NoError(t, err)
+		assert.Equal(t, stored, updated)
+
+		got, err := sut.GetSecret(ctx, secret.ID, userID)
+		require.NoError(t, err)
+		assert.Equal(t, secret, got)
+	})
+	t.Run("invalid data key", func(t *testing.T) {
+		ctx := context.Background()
+		keyRepo := inmemory.NewDataKeyRepository()
+		rootKey := randomMasterKey(t)
+		setInvalidDataKey(t, ctx, rootKey, keyRepo)
+		secretRepo := inmemory.NewSecretRepository()
+
+		sut := NewVaultService(secretRepo, keyRepo, rootKey)
+		secret := &model.Secret{}
+		userID := uuid.New()
+		_, err := secretRepo.AddSecret(ctx, secret, userID)
+		require.NoError(t, err)
+
+		_, err = sut.UpdateSecret(ctx, secret, userID)
+
+		require.Error(t, err)
+	})
+}
+
 func TestGetSecret(t *testing.T) {
 	t.Run("get secret", func(t *testing.T) {
 		ctx := context.Background()

@@ -46,14 +46,15 @@ func (r *secretRepository) AddSecret(ctx context.Context, s *model.Secret, userI
 
 	secret := s.Copy()
 	secret.ID = uuid.New()
+	return r.addOrUpdateSecret(secret, userID), nil
+}
 
-	if _, ok := r.userSecrets[userID]; !ok {
-		r.userSecrets[userID] = make(userSecrets)
-	}
-	secrets := r.userSecrets[userID]
-	secrets[secret.ID] = secret
+func (r *secretRepository) UpdateSecret(ctx context.Context, s *model.Secret, userID uuid.UUID) (*model.Secret, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	return secret, nil
+	secret := s.Copy()
+	return r.addOrUpdateSecret(secret, userID), nil
 }
 
 func (r *secretRepository) GetSecret(ctx context.Context, secretID, userID uuid.UUID) (*model.Secret, error) {
@@ -85,4 +86,14 @@ func (r *secretRepository) DeleteSecret(ctx context.Context, secretID, userID uu
 	delete(userSecrets, secretID)
 
 	return nil
+}
+
+func (r *secretRepository) addOrUpdateSecret(secret *model.Secret, userID uuid.UUID) *model.Secret {
+	if _, ok := r.userSecrets[userID]; !ok {
+		r.userSecrets[userID] = make(userSecrets)
+	}
+	secrets := r.userSecrets[userID]
+	secrets[secret.ID] = secret
+
+	return secret
 }

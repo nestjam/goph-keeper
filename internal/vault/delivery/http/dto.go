@@ -20,3 +20,7 @@ type AddSecretResponse struct {
 type GetSecretResponse struct {
 	Secret Secret `json:"secret"`
 }
+
+type UpdateSecretRequest struct {
+	Secret Secret `json:"secret"`
+}

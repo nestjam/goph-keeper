@@ -170,6 +170,90 @@ func TestAddSecret(t *testing.T) {
 	})
 }
 
+func TestUpdateSecret(t *testing.T) {
+	config := newConfig()
+	rootKey := randomMasterKey(t)
+
+	t.Run("update secret", func(t *testing.T) {
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
+		ctx := context.Background()
+		s := &model.Secret{ID: uuid.New()}
+		userID := uuid.New()
+		_, err := service.AddSecret(ctx, s, userID)
+		require.NoError(t, err)
+		const wantData = "edited text"
+		secret := Secret{ID: s.ID.String(), Data: wantData}
+		r := newUpdateSecretRequestWithUser(t, secret, userID)
+		w := httptest.NewRecorder()
+		sut := NewVaultHandlers(service, config)
+
+		updateSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		got, err := service.GetSecret(ctx, s.ID, userID)
+		require.NoError(t, err)
+		assert.Equal(t, []byte(wantData), got.Data)
+	})
+	t.Run("user not found in context", func(t *testing.T) {
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
+		sut := NewVaultHandlers(service, config)
+		secret := Secret{ID: uuid.NewString()}
+		r := newUpdateSecretRequest(t, "", secret)
+		r = addAuthError(t, r, errors.New("failed"))
+		w := httptest.NewRecorder()
+
+		updateSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+	t.Run("invalid secret id", func(t *testing.T) {
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
+		sut := NewVaultHandlers(service, config)
+		r := newInvalidIDUpdateSecretRequest(t)
+		w := httptest.NewRecorder()
+
+		updateSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+	t.Run("invalid json", func(t *testing.T) {
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
+		sut := NewVaultHandlers(service, config)
+		userID := uuid.New()
+		secretID := uuid.NewString()
+		r := newInvalidUpdateSecretRequestWithUser(t, secretID, userID)
+		w := httptest.NewRecorder()
+
+		updateSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+	t.Run("failed to update secret", func(t *testing.T) {
+		service := &vaultServiceMock{
+			UpdateSecretFunc: func(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error) {
+				return nil, errors.New("failed")
+			},
+		}
+		sut := NewVaultHandlers(service, config)
+		userID := uuid.New()
+		secret := Secret{ID: uuid.NewString()}
+		r := newUpdateSecretRequestWithUser(t, secret, userID)
+		w := httptest.NewRecorder()
+
+		updateSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+}
+
 func TestGetSecret(t *testing.T) {
 	config := newConfig()
 	rootKey := randomMasterKey(t)
@@ -307,6 +391,12 @@ func TestDeleteSecret(t *testing.T) {
 	})
 }
 
+func updateSecret(sut vault.VaultHandlers, w *httptest.ResponseRecorder, r *http.Request) {
+	router := chi.NewRouter()
+	router.Patch("/{secret}", sut.UpdateSecret())
+	router.ServeHTTP(w, r)
+}
+
 func deleteSecret(sut vault.VaultHandlers, w *httptest.ResponseRecorder, r *http.Request) {
 	router := chi.NewRouter()
 	router.Delete("/{secret}", sut.DeleteSecret())
@@ -345,6 +435,12 @@ func newGetSecretRequestWithUser(t *testing.T, secretID, userID uuid.UUID) *http
 	return r
 }
 
+func newInvalidIDUpdateSecretRequest(t *testing.T) *http.Request {
+	t.Helper()
+
+	return httptest.NewRequest(http.MethodPatch, "/foo", nil)
+}
+
 func newInvalidIDDeleteSecretRequest(t *testing.T) *http.Request {
 	t.Helper()
 
@@ -364,6 +460,14 @@ func newConfig() config.JWTAuthConfig {
 	}
 }
 
+func newUpdateSecretRequestWithUser(t *testing.T, secret Secret, userID uuid.UUID) *http.Request {
+	t.Helper()
+
+	r := newUpdateSecretRequest(t, "", secret)
+	r = addAuthToken(t, r, userID)
+	return r
+}
+
 func newAddSecretRequestWithUser(t *testing.T, secret Secret, userID uuid.UUID) *http.Request {
 	t.Helper()
 
@@ -376,6 +480,14 @@ func newInvalidAddSecretRequestWithUser(t *testing.T, userID uuid.UUID) *http.Re
 	t.Helper()
 
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("{{invalid json]}"))
+	r = addAuthToken(t, r, userID)
+	return r
+}
+
+func newInvalidUpdateSecretRequestWithUser(t *testing.T, secretID string, userID uuid.UUID) *http.Request {
+	t.Helper()
+
+	r := httptest.NewRequest(http.MethodPatch, "/"+secretID, strings.NewReader("{{invalid json]}"))
 	r = addAuthToken(t, r, userID)
 	return r
 }

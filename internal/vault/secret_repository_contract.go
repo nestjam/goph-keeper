@@ -32,6 +32,25 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		assert.Equal(t, secret.Data, got.Data)
 	})
 
+	t.Run("update secret", func(t *testing.T) {
+		sut, tearDown := c.NewSecretRepository()
+		t.Cleanup(tearDown)
+		secret := &model.Secret{
+			ID: uuid.New(),
+		}
+		userID := uuid.New()
+		ctx := context.Background()
+		_, err := sut.AddSecret(ctx, secret, userID)
+		require.NoError(t, err)
+		secret.Data = []byte("edited text")
+
+		got, err := sut.UpdateSecret(ctx, secret, userID)
+
+		require.NoError(t, err)
+		assert.Equal(t, secret.ID, got.ID)
+		assert.Equal(t, secret.Data, got.Data)
+	})
+
 	t.Run("list secrets", func(t *testing.T) {
 		t.Run("user has no secrets", func(t *testing.T) {
 			sut, tearDown := c.NewSecretRepository()

@@ -11,6 +11,7 @@ import (
 type vaultServiceMock struct {
 	ListSecretsFunc  func(ctx context.Context, userID uuid.UUID) ([]*model.Secret, error)
 	AddSecretFunc    func(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error)
+	UpdateSecretFunc func(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error)
 	GetSecretFunc    func(ctx context.Context, secretID, userID uuid.UUID) (*model.Secret, error)
 	DeleteSecretFunc func(ctx context.Context, secretID, userID uuid.UUID) error
 }
@@ -21,6 +22,10 @@ func (m *vaultServiceMock) ListSecrets(ctx context.Context, userID uuid.UUID) ([
 
 func (m *vaultServiceMock) AddSecret(ctx context.Context, s *model.Secret, userID uuid.UUID) (*model.Secret, error) {
 	return m.AddSecretFunc(ctx, s, userID)
+}
+
+func (m *vaultServiceMock) UpdateSecret(ctx context.Context, s *model.Secret, userID uuid.UUID) (*model.Secret, error) {
+	return m.UpdateSecretFunc(ctx, s, userID)
 }
 
 func (m *vaultServiceMock) GetSecret(ctx context.Context, secretID, userID uuid.UUID) (*model.Secret, error) {

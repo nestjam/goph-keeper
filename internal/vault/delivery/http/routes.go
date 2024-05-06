@@ -31,6 +31,7 @@ func MapVaultRoutes(r chi.Router, h vault.VaultHandlers, cfg config.JWTAuthConfi
 		useJWTAuth(r, jwtAuth)
 
 		r.Post(secretsPath, h.AddSecret())
+		r.Patch(secretsPath+secretPattern, h.UpdateSecret())
 	})
 }
 
