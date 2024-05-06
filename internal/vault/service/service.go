@@ -35,20 +35,20 @@ func (s *vaultService) ListSecrets(ctx context.Context, userID uuid.UUID) ([]*mo
 	return secrets, nil
 }
 
-func (s *vaultService) AddSecret(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error) {
+func (s *vaultService) AddSecret(ctx context.Context, secret *model.Secret, userID uuid.UUID) (uuid.UUID, error) {
 	const op = "add secret"
 
 	sealed, err := s.keyring.Seal(ctx, secret)
 	if err != nil {
-		return nil, errors.Wrap(err, op)
+		return uuid.Nil, errors.Wrap(err, op)
 	}
 
-	added, err := s.secretRepo.AddSecret(ctx, sealed, userID)
+	id, err := s.secretRepo.AddSecret(ctx, sealed, userID)
 	if err != nil {
-		return nil, errors.Wrap(err, op)
+		return uuid.Nil, errors.Wrap(err, op)
 	}
 
-	return added, nil
+	return id, nil
 }
 
 func (s *vaultService) UpdateSecret(ctx context.Context, secret *model.Secret, userID uuid.UUID) error {

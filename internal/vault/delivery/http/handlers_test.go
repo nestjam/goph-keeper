@@ -54,12 +54,13 @@ func TestListSecrets(t *testing.T) {
 		ctx := context.Background()
 		userID := uuid.New()
 		secret := &model.Secret{}
-		s, err := secretRepo.AddSecret(ctx, secret, userID)
+		var err error
+		secret.ID, err = secretRepo.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 		r := newListSecretsRequestWithUser(t, userID)
 		w := httptest.NewRecorder()
 		want := []Secret{
-			{ID: s.ID.String()},
+			{ID: secret.ID.String()},
 		}
 
 		sut.ListSecrets().ServeHTTP(w, r)
@@ -141,8 +142,8 @@ func TestAddSecret(t *testing.T) {
 	})
 	t.Run("failed to add secret", func(t *testing.T) {
 		service := &vaultServiceMock{
-			AddSecretFunc: func(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error) {
-				return nil, errors.New("failed")
+			AddSecretFunc: func(ctx context.Context, secret *model.Secret, userID uuid.UUID) (uuid.UUID, error) {
+				return uuid.Nil, errors.New("failed")
 			},
 		}
 		sut := NewVaultHandlers(service, config)
@@ -181,8 +182,8 @@ func TestUpdateSecret(t *testing.T) {
 		ctx := context.Background()
 		s := &model.Secret{}
 		userID := uuid.New()
-		tt, err := service.AddSecret(ctx, s, userID)
-		s.ID = tt.ID
+		var err error
+		s.ID, err = service.AddSecret(ctx, s, userID)
 		require.NoError(t, err)
 		const wantData = "edited text"
 		secret := Secret{ID: s.ID.String(), Data: wantData}
@@ -283,16 +284,17 @@ func TestGetSecret(t *testing.T) {
 		userID := uuid.New()
 		const data = "data"
 		secret := &model.Secret{Data: []byte(data)}
-		added, err := service.AddSecret(ctx, secret, userID)
+		var err error
+		secret.ID, err = service.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
-		r := newGetSecretRequestWithUser(t, added.ID, userID)
+		r := newGetSecretRequestWithUser(t, secret.ID, userID)
 		w := httptest.NewRecorder()
 
 		getSecret(sut, w, r)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		resp := secretFromResponse(t, w.Body)
-		assert.Equal(t, added.ID.String(), resp.ID)
+		assert.Equal(t, secret.ID.String(), resp.ID)
 		assert.Equal(t, data, resp.Data)
 	})
 	t.Run("secret not found", func(t *testing.T) {
@@ -328,7 +330,9 @@ func TestGetSecret(t *testing.T) {
 		sut := NewVaultHandlers(service, config)
 		ctx := context.Background()
 		userID := uuid.New()
-		secret, err := secretRepo.AddSecret(ctx, &model.Secret{}, userID)
+		secret := &model.Secret{}
+		var err error
+		secret.ID, err = secretRepo.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 		r := newGetSecretRequest(t, "", secret.ID)
 		r = addAuthError(t, r, errors.New("failed"))
@@ -368,9 +372,10 @@ func TestDeleteSecret(t *testing.T) {
 		ctx := context.Background()
 		userID := uuid.New()
 		secret := &model.Secret{}
-		want, err := secretRepo.AddSecret(ctx, secret, userID)
+		var err error
+		secret.ID, err = secretRepo.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
-		r := newDeleteSecretRequestWithUser(t, want.ID, userID)
+		r := newDeleteSecretRequestWithUser(t, secret.ID, userID)
 		w := httptest.NewRecorder()
 
 		deleteSecret(sut, w, r)

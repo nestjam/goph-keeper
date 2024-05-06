@@ -71,13 +71,13 @@ func (h *VaultHandlers) AddSecret() http.HandlerFunc {
 			return
 		}
 
-		addedSecret, err := h.service.AddSecret(ctx, secret, userID)
+		secretID, err := h.service.AddSecret(ctx, secret, userID)
 		if err != nil {
 			writeInternalServerError(w)
 			return
 		}
 
-		resp := newAddSecretResponse(addedSecret)
+		resp := newAddSecretResponse(secretID)
 		err = writeJSON(w, http.StatusCreated, resp)
 		if err != nil {
 			writeInternalServerError(w)
@@ -264,10 +264,10 @@ func newListSecretsResponse(secrets []*model.Secret) *ListSecretsResponse {
 	return resp
 }
 
-func newAddSecretResponse(secret *model.Secret) AddSecretResponse {
+func newAddSecretResponse(secretID uuid.UUID) AddSecretResponse {
 	return AddSecretResponse{
 		Secret: Secret{
-			ID: secret.ID.String(),
+			ID: secretID.String(),
 		},
 	}
 }

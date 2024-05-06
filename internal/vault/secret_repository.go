@@ -16,7 +16,7 @@ var (
 //nolint:dupl // SecretRepository is not duplicate of VaultService
 type SecretRepository interface {
 	ListSecrets(ctx context.Context, userID uuid.UUID) ([]*model.Secret, error)
-	AddSecret(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error)
+	AddSecret(ctx context.Context, secret *model.Secret, userID uuid.UUID) (uuid.UUID, error)
 	UpdateSecret(ctx context.Context, secret *model.Secret, userID uuid.UUID) error
 	GetSecret(ctx context.Context, secretID, userID uuid.UUID) (*model.Secret, error)
 	DeleteSecret(ctx context.Context, secretID, userID uuid.UUID) error

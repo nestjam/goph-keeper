@@ -28,8 +28,7 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		got, err := sut.AddSecret(ctx, secret, userID)
 
 		require.NoError(t, err)
-		assert.NotEqual(t, uuid.Nil, got.ID)
-		assert.Equal(t, secret.Data, got.Data)
+		assert.NotEqual(t, uuid.Nil, got)
 	})
 
 	t.Run("update secret", func(t *testing.T) {
@@ -38,7 +37,8 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		secret := &model.Secret{}
 		userID := uuid.New()
 		ctx := context.Background()
-		secret, err := sut.AddSecret(ctx, secret, userID)
+		var err error
+		secret.ID, err = sut.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 		secret.Data = []byte("edited text")
 
@@ -81,10 +81,11 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 			secret := &model.Secret{
 				Data: []byte("data_"),
 			}
-			s1, err := sut.AddSecret(ctx, secret, userID)
+			var err error
+			secret.ID, err = sut.AddSecret(ctx, secret, userID)
 			require.NoError(t, err)
 			want := []*model.Secret{
-				{ID: s1.ID},
+				{ID: secret.ID},
 			}
 
 			got, err := sut.ListSecrets(ctx, userID)
@@ -97,15 +98,16 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 			t.Cleanup(tearDown)
 			userID := uuid.New()
 			ctx := context.Background()
-			secret := &model.Secret{}
-			s1, err := sut.AddSecret(ctx, secret, userID)
+			s1 := &model.Secret{}
+			var err error
+			s1.ID, err = sut.AddSecret(ctx, s1, userID)
 			require.NoError(t, err)
-			secret = &model.Secret{}
-			s2, err := sut.AddSecret(ctx, secret, userID)
+			s2 := &model.Secret{}
+			s2.ID, err = sut.AddSecret(ctx, s2, userID)
 			require.NoError(t, err)
 			user2ID := uuid.New()
-			secret = &model.Secret{}
-			_, err = sut.AddSecret(ctx, secret, user2ID)
+			s3 := &model.Secret{}
+			_, err = sut.AddSecret(ctx, s3, user2ID)
 			require.NoError(t, err)
 			want := []*model.Secret{
 				{ID: s1.ID},
@@ -122,10 +124,11 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 			t.Run("get user secret", func(t *testing.T) {
 				sut, tearDown := c.NewSecretRepository()
 				t.Cleanup(tearDown)
-				secret := &model.Secret{}
+				want := &model.Secret{}
 				userID := uuid.New()
 				ctx := context.Background()
-				want, err := sut.AddSecret(ctx, secret, userID)
+				var err error
+				want.ID, err = sut.AddSecret(ctx, want, userID)
 				require.NoError(t, err)
 
 				got, err := sut.GetSecret(ctx, want.ID, userID)
@@ -164,10 +167,11 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 			t.Run("delete user secret", func(t *testing.T) {
 				sut, tearDown := c.NewSecretRepository()
 				t.Cleanup(tearDown)
-				secret := &model.Secret{}
 				userID := uuid.New()
 				ctx := context.Background()
-				want, err := sut.AddSecret(ctx, secret, userID)
+				want := &model.Secret{}
+				var err error
+				want.ID, err = sut.AddSecret(ctx, want, userID)
 				require.NoError(t, err)
 
 				err = sut.DeleteSecret(ctx, want.ID, userID)

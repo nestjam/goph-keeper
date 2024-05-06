@@ -28,9 +28,8 @@ func TestAddSecret(t *testing.T) {
 		got, err := sut.AddSecret(ctx, secret, userID)
 
 		require.NoError(t, err)
-		stored, err := secretRepo.GetSecret(ctx, got.ID, userID)
+		_, err = secretRepo.GetSecret(ctx, got, userID)
 		require.NoError(t, err)
-		assert.Equal(t, stored.ID, got.ID)
 	})
 	t.Run("invalid data key", func(t *testing.T) {
 		ctx := context.Background()
@@ -56,12 +55,12 @@ func TestUpdateSecret(t *testing.T) {
 		secretRepo := inmemory.NewSecretRepository()
 		rootKey := randomMasterKey(t)
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
-		secret := &model.Secret{}
 		userID := uuid.New()
-		secret, err := sut.AddSecret(ctx, secret, userID)
+		secret := &model.Secret{}
+		var err error
+		secret.ID, err = sut.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 		secret.Data = []byte("edited text")
-		secret.KeyID = uuid.Nil
 
 		err = sut.UpdateSecret(ctx, secret, userID)
 
@@ -96,18 +95,16 @@ func TestGetSecret(t *testing.T) {
 		secretRepo := inmemory.NewSecretRepository()
 		rootKey := randomMasterKey(t)
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
-		secret := &model.Secret{Data: []byte("text")}
-		wantData := secret.Data
 		userID := uuid.New()
-		added, err := sut.AddSecret(ctx, secret, userID)
-		wantID := added.ID
+		want := &model.Secret{Data: []byte("text")}
+		var err error
+		want.ID, err = sut.AddSecret(ctx, want, userID)
 		require.NoError(t, err)
 
-		got, err := sut.GetSecret(ctx, added.ID, userID)
+		got, err := sut.GetSecret(ctx, want.ID, userID)
 
 		require.NoError(t, err)
-		assert.Equal(t, wantID, got.ID)
-		assert.Equal(t, wantData, got.Data)
+		assert.Equal(t, want, got)
 	})
 	t.Run("key not found", func(t *testing.T) {
 		ctx := context.Background()
@@ -120,10 +117,11 @@ func TestGetSecret(t *testing.T) {
 			KeyID: uuid.New(),
 		}
 		userID := uuid.New()
-		added, err := secretRepo.AddSecret(ctx, secret, userID)
+		var err error
+		secret.ID, err = secretRepo.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 
-		_, err = sut.GetSecret(ctx, added.ID, userID)
+		_, err = sut.GetSecret(ctx, secret.ID, userID)
 
 		require.Error(t, err)
 	})
@@ -136,9 +134,10 @@ func TestDeleteSecret(t *testing.T) {
 		secretRepo := inmemory.NewSecretRepository()
 		rootKey := randomMasterKey(t)
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
-		secret := &model.Secret{}
 		userID := uuid.New()
-		secret, err := secretRepo.AddSecret(ctx, secret, userID)
+		secret := &model.Secret{}
+		var err error
+		secret.ID, err = secretRepo.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 
 		err = sut.DeleteSecret(ctx, secret.ID, userID)
@@ -174,20 +173,20 @@ func TestListSecrets(t *testing.T) {
 		rootKey := randomMasterKey(t)
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
 		userID := uuid.New()
-		secret := &model.Secret{}
-		secret, _ = secretRepo.AddSecret(ctx, secret, userID)
-		secret2 := &model.Secret{}
-		secret2, _ = secretRepo.AddSecret(ctx, secret2, userID)
+		s := &model.Secret{}
+		s.ID, _ = secretRepo.AddSecret(ctx, s, userID)
+		s2 := &model.Secret{}
+		s2.ID, _ = secretRepo.AddSecret(ctx, s2, userID)
 		user2ID := uuid.New()
-		secret3 := &model.Secret{}
-		_, _ = secretRepo.AddSecret(ctx, secret3, user2ID)
+		s3 := &model.Secret{}
+		_, _ = secretRepo.AddSecret(ctx, s3, user2ID)
 
 		secrets, err := sut.ListSecrets(ctx, userID)
 
 		require.NoError(t, err)
 		assert.Equal(t, 2, len(secrets))
-		assert.Equal(t, secret.ID, secrets[0].ID)
-		assert.Equal(t, secret2.ID, secrets[1].ID)
+		assert.Equal(t, s.ID, secrets[0].ID)
+		assert.Equal(t, s2.ID, secrets[1].ID)
 	})
 	t.Run("failed to list secret", func(t *testing.T) {
 		ctx := context.Background()

@@ -40,7 +40,7 @@ func (r *secretRepository) ListSecrets(ctx context.Context, userID uuid.UUID) ([
 	return secrets, nil
 }
 
-func (r *secretRepository) AddSecret(ctx context.Context, s *model.Secret, userID uuid.UUID) (*model.Secret, error) {
+func (r *secretRepository) AddSecret(ctx context.Context, s *model.Secret, userID uuid.UUID) (uuid.UUID, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -53,7 +53,7 @@ func (r *secretRepository) AddSecret(ctx context.Context, s *model.Secret, userI
 	secrets := r.userSecrets[userID]
 	secrets[secret.ID] = secret
 
-	return secret, nil
+	return secret.ID, nil
 }
 
 func (r *secretRepository) UpdateSecret(ctx context.Context, s *model.Secret, userID uuid.UUID) error {
