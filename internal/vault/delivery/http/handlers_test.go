@@ -238,8 +238,8 @@ func TestUpdateSecret(t *testing.T) {
 	})
 	t.Run("failed to update secret", func(t *testing.T) {
 		service := &vaultServiceMock{
-			UpdateSecretFunc: func(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error) {
-				return nil, errors.New("failed")
+			UpdateSecretFunc: func(ctx context.Context, secret *model.Secret, userID uuid.UUID) error {
+				return errors.New("failed")
 			},
 		}
 		sut := NewVaultHandlers(service, config)

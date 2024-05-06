@@ -109,7 +109,7 @@ func (h *VaultHandlers) UpdateSecret() http.HandlerFunc {
 		}
 		secret.ID = secretID
 
-		_, err = h.service.UpdateSecret(ctx, secret, userID)
+		err = h.service.UpdateSecret(ctx, secret, userID)
 		if err != nil {
 			writeInternalServerError(w)
 			return

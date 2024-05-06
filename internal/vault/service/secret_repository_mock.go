@@ -11,7 +11,7 @@ import (
 type secretRepositoryMock struct {
 	ListSecretsFunc  func(ctx context.Context, userID uuid.UUID) ([]*model.Secret, error)
 	AddSecretFunc    func(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error)
-	UpdateSecretFunc func(ctx context.Context, secret *model.Secret, userID uuid.UUID) (*model.Secret, error)
+	UpdateSecretFunc func(ctx context.Context, secret *model.Secret, userID uuid.UUID) error
 	GetSecretFunc    func(ctx context.Context, secretID, userID uuid.UUID) (*model.Secret, error)
 	DeleteSecretFunc func(ctx context.Context, secretID, userID uuid.UUID) error
 }
@@ -24,7 +24,7 @@ func (m *secretRepositoryMock) AddSecret(ctx context.Context, s *model.Secret, u
 	return m.AddSecretFunc(ctx, s, u)
 }
 
-func (m *secretRepositoryMock) UpdateSecret(ctx context.Context, s *model.Secret, u uuid.UUID) (*model.Secret, error) {
+func (m *secretRepositoryMock) UpdateSecret(ctx context.Context, s *model.Secret, u uuid.UUID) error {
 	return m.UpdateSecretFunc(ctx, s, u)
 }
 

@@ -6,12 +6,13 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/nestjam/goph-keeper/internal/utils"
 	"github.com/nestjam/goph-keeper/internal/vault"
 	"github.com/nestjam/goph-keeper/internal/vault/model"
 	"github.com/nestjam/goph-keeper/internal/vault/repository/inmemory"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAddSecret(t *testing.T) {
@@ -63,13 +64,9 @@ func TestUpdateSecret(t *testing.T) {
 		require.NoError(t, err)
 		secret.Data = []byte("edited text")
 
-		updated, err := sut.UpdateSecret(ctx, secret, userID)
+		err = sut.UpdateSecret(ctx, secret, userID)
 
 		require.NoError(t, err)
-		stored, err := secretRepo.GetSecret(ctx, secret.ID, userID)
-		require.NoError(t, err)
-		assert.Equal(t, stored, updated)
-
 		got, err := sut.GetSecret(ctx, secret.ID, userID)
 		require.NoError(t, err)
 		assert.Equal(t, secret, got)
@@ -87,7 +84,7 @@ func TestUpdateSecret(t *testing.T) {
 		_, err := secretRepo.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 
-		_, err = sut.UpdateSecret(ctx, secret, userID)
+		err = sut.UpdateSecret(ctx, secret, userID)
 
 		require.Error(t, err)
 	})

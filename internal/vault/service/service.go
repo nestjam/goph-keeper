@@ -51,20 +51,20 @@ func (s *vaultService) AddSecret(ctx context.Context, secret *model.Secret, user
 	return added, nil
 }
 
-func (s *vaultService) UpdateSecret(ctx context.Context, sc *model.Secret, userID uuid.UUID) (*model.Secret, error) {
+func (s *vaultService) UpdateSecret(ctx context.Context, secret *model.Secret, userID uuid.UUID) error {
 	const op = "update secret"
 
-	sealed, err := s.keyring.Seal(ctx, sc)
+	sealed, err := s.keyring.Seal(ctx, secret)
 	if err != nil {
-		return nil, errors.Wrap(err, op)
+		return errors.Wrap(err, op)
 	}
 
-	updated, err := s.secretRepo.UpdateSecret(ctx, sealed, userID)
+	err = s.secretRepo.UpdateSecret(ctx, sealed, userID)
 	if err != nil {
-		return nil, errors.Wrap(err, op)
+		return errors.Wrap(err, op)
 	}
 
-	return updated, nil
+	return nil
 }
 
 func (s *vaultService) GetSecret(ctx context.Context, secretID, userID uuid.UUID) (*model.Secret, error) {

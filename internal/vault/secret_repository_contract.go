@@ -44,9 +44,10 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		require.NoError(t, err)
 		secret.Data = []byte("edited text")
 
-		got, err := sut.UpdateSecret(ctx, secret, userID)
+		err = sut.UpdateSecret(ctx, secret, userID)
 
 		require.NoError(t, err)
+		got, _ := sut.GetSecret(ctx, secret.ID, userID)
 		assert.Equal(t, secret.ID, got.ID)
 		assert.Equal(t, secret.Data, got.Data)
 	})

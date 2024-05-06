@@ -49,12 +49,13 @@ func (r *secretRepository) AddSecret(ctx context.Context, s *model.Secret, userI
 	return r.addOrUpdateSecret(secret, userID), nil
 }
 
-func (r *secretRepository) UpdateSecret(ctx context.Context, s *model.Secret, userID uuid.UUID) (*model.Secret, error) {
+func (r *secretRepository) UpdateSecret(ctx context.Context, s *model.Secret, userID uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	secret := s.Copy()
-	return r.addOrUpdateSecret(secret, userID), nil
+	_ = r.addOrUpdateSecret(secret, userID)
+	return nil
 }
 
 func (r *secretRepository) GetSecret(ctx context.Context, secretID, userID uuid.UUID) (*model.Secret, error) {
