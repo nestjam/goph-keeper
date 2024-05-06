@@ -93,7 +93,7 @@ func TestSecretModel_Update(t *testing.T) {
 		m, _ := model.(secretModel)
 		got := m.secret
 		assert.Equal(t, want, got)
-		assert.True(t, m.isEdited)
+		assert.True(t, m.isNew)
 		assert.Nil(t, cmd)
 	})
 	t.Run("save secret by ctrl+s", func(t *testing.T) {
@@ -114,7 +114,7 @@ func TestSecretModel_Update(t *testing.T) {
 		want := httpVault.Secret{ID: "1", Data: "data"}
 		msg := saveSecretCompletedMsg{want}
 		sut := NewSecretModel(address, jwtCookie)
-		sut.isEdited = true
+		sut.isNew = true
 
 		model, cmd := sut.Update(msg)
 
@@ -123,6 +123,6 @@ func TestSecretModel_Update(t *testing.T) {
 		assert.Nil(t, cmd)
 		assert.Equal(t, want, got.secret)
 		assert.Equal(t, want.Data, got.textarea.Value())
-		assert.False(t, got.isEdited)
+		assert.False(t, got.isNew)
 	})
 }

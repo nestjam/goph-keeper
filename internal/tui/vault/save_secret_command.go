@@ -26,6 +26,14 @@ func newSaveSecretCommand(secret httpVault.Secret, address string, jwtCookie *ht
 }
 
 func (c saveSecretCommand) execute() tea.Msg {
+	if c.secret.ID == "" {
+		return c.addSecret()
+	}
+
+	return c.updateSecret()
+}
+
+func (c saveSecretCommand) addSecret() tea.Msg {
 	client := resty.New()
 
 	//nolint:gosec // using self-signed certificate
@@ -47,8 +55,34 @@ func (c saveSecretCommand) execute() tea.Msg {
 
 	if resp.IsSuccess() {
 		secret := res.Secret
-		secret.Data = c.secret.Data // server does not return secret data
+		secret.Data = c.secret.Data
 		return saveSecretCompletedMsg{secret}
+	}
+
+	return saveSecretFailedMsg{resp.StatusCode()}
+}
+
+func (c saveSecretCommand) updateSecret() tea.Msg {
+	client := resty.New()
+
+	//nolint:gosec // using self-signed certificate
+	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+
+	url, err := url.JoinPath(c.address, baseURL, c.secret.ID)
+	if err != nil {
+		return errMsg{err}
+	}
+
+	req := httpVault.UpdateSecretRequest{
+		Secret: c.secret,
+	}
+	resp, err := client.R().SetBody(req).SetCookie(c.jwtCookie).Patch(url)
+	if err != nil {
+		return errMsg{err}
+	}
+
+	if resp.IsSuccess() {
+		return saveSecretCompletedMsg{c.secret}
 	}
 
 	return saveSecretFailedMsg{resp.StatusCode()}

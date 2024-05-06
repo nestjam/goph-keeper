@@ -18,7 +18,7 @@ type secretModel struct {
 	address            string
 	secret             httpVault.Secret
 	failtureStatusCode int
-	isEdited           bool
+	isNew              bool
 }
 
 func NewSecretModel(address string, jwtCookie *http.Cookie) secretModel {
@@ -53,13 +53,13 @@ func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case createSecretRequestedMsg:
 		{
 			m.secret = httpVault.Secret{}
-			m.isEdited = true
+			m.isNew = true
 		}
 	case saveSecretCompletedMsg:
 		{
 			m.secret = msg.secret
 			m.textarea.SetValue(msg.secret.Data)
-			m.isEdited = false
+			m.isNew = false
 		}
 	case errMsg:
 		{
