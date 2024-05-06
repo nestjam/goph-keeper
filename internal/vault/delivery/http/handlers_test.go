@@ -179,9 +179,10 @@ func TestUpdateSecret(t *testing.T) {
 		secretRepo := inmemory.NewSecretRepository()
 		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
 		ctx := context.Background()
-		s := &model.Secret{ID: uuid.New()}
+		s := &model.Secret{}
 		userID := uuid.New()
-		_, err := service.AddSecret(ctx, s, userID)
+		tt, err := service.AddSecret(ctx, s, userID)
+		s.ID = tt.ID
 		require.NoError(t, err)
 		const wantData = "edited text"
 		secret := Secret{ID: s.ID.String(), Data: wantData}
@@ -195,6 +196,21 @@ func TestUpdateSecret(t *testing.T) {
 		got, err := service.GetSecret(ctx, s.ID, userID)
 		require.NoError(t, err)
 		assert.Equal(t, []byte(wantData), got.Data)
+	})
+	t.Run("updating secret not found", func(t *testing.T) {
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
+		userID := uuid.New()
+		const wantData = "edited text"
+		secret := Secret{ID: uuid.NewString(), Data: wantData}
+		r := newUpdateSecretRequestWithUser(t, secret, userID)
+		w := httptest.NewRecorder()
+		sut := NewVaultHandlers(service, config)
+
+		updateSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 	t.Run("user not found in context", func(t *testing.T) {
 		keyRepo := inmemory.NewDataKeyRepository()
@@ -278,6 +294,20 @@ func TestGetSecret(t *testing.T) {
 		resp := secretFromResponse(t, w.Body)
 		assert.Equal(t, added.ID.String(), resp.ID)
 		assert.Equal(t, data, resp.Data)
+	})
+	t.Run("secret not found", func(t *testing.T) {
+		keyRepo := inmemory.NewDataKeyRepository()
+		secretRepo := inmemory.NewSecretRepository()
+		service := service.NewVaultService(secretRepo, keyRepo, rootKey)
+		sut := NewVaultHandlers(service, config)
+		userID := uuid.New()
+		secretID := uuid.New()
+		r := newGetSecretRequestWithUser(t, secretID, userID)
+		w := httptest.NewRecorder()
+
+		getSecret(sut, w, r)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 	t.Run("invalid secret id", func(t *testing.T) {
 		keyRepo := inmemory.NewDataKeyRepository()

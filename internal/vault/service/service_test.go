@@ -56,13 +56,12 @@ func TestUpdateSecret(t *testing.T) {
 		secretRepo := inmemory.NewSecretRepository()
 		rootKey := randomMasterKey(t)
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
-		secret := &model.Secret{
-			ID: uuid.New(),
-		}
+		secret := &model.Secret{}
 		userID := uuid.New()
-		_, err := secretRepo.AddSecret(ctx, secret, userID)
+		secret, err := sut.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 		secret.Data = []byte("edited text")
+		secret.KeyID = uuid.Nil
 
 		err = sut.UpdateSecret(ctx, secret, userID)
 

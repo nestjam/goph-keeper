@@ -110,6 +110,10 @@ func (h *VaultHandlers) UpdateSecret() http.HandlerFunc {
 		secret.ID = secretID
 
 		err = h.service.UpdateSecret(ctx, secret, userID)
+		if errors.Is(err, vault.ErrSecretNotFound) {
+			writeNotFound(w)
+			return
+		}
 		if err != nil {
 			writeInternalServerError(w)
 			return
@@ -136,6 +140,10 @@ func (h *VaultHandlers) GetSecret() http.HandlerFunc {
 		}
 
 		secret, err := h.service.GetSecret(ctx, secretID, userID)
+		if errors.Is(err, vault.ErrSecretNotFound) {
+			writeNotFound(w)
+			return
+		}
 		if err != nil {
 			writeInternalServerError(w)
 			return
@@ -237,6 +245,10 @@ func writeBadRequest(w http.ResponseWriter) {
 
 func writeInternalServerError(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
+}
+
+func writeNotFound(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNotFound)
 }
 
 func newListSecretsResponse(secrets []*model.Secret) *ListSecretsResponse {

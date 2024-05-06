@@ -46,7 +46,14 @@ func (r *secretRepository) AddSecret(ctx context.Context, s *model.Secret, userI
 
 	secret := s.Copy()
 	secret.ID = uuid.New()
-	return r.addOrUpdateSecret(secret, userID), nil
+
+	if _, ok := r.userSecrets[userID]; !ok {
+		r.userSecrets[userID] = make(userSecrets)
+	}
+	secrets := r.userSecrets[userID]
+	secrets[secret.ID] = secret
+
+	return secret, nil
 }
 
 func (r *secretRepository) UpdateSecret(ctx context.Context, s *model.Secret, userID uuid.UUID) error {
@@ -54,7 +61,17 @@ func (r *secretRepository) UpdateSecret(ctx context.Context, s *model.Secret, us
 	defer r.mu.Unlock()
 
 	secret := s.Copy()
-	_ = r.addOrUpdateSecret(secret, userID)
+
+	if _, ok := r.userSecrets[userID]; !ok {
+		r.userSecrets[userID] = make(userSecrets)
+	}
+	secrets := r.userSecrets[userID]
+
+	if _, ok := secrets[secret.ID]; !ok {
+		return vault.ErrSecretNotFound
+	}
+	secrets[secret.ID] = secret
+
 	return nil
 }
 
@@ -87,14 +104,4 @@ func (r *secretRepository) DeleteSecret(ctx context.Context, secretID, userID uu
 	delete(userSecrets, secretID)
 
 	return nil
-}
-
-func (r *secretRepository) addOrUpdateSecret(secret *model.Secret, userID uuid.UUID) *model.Secret {
-	if _, ok := r.userSecrets[userID]; !ok {
-		r.userSecrets[userID] = make(userSecrets)
-	}
-	secrets := r.userSecrets[userID]
-	secrets[secret.ID] = secret
-
-	return secret
 }
