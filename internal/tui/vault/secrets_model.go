@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -19,7 +21,26 @@ var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
 
+type secretsKeyMap struct {
+	Quit   key.Binding
+	Up     key.Binding
+	Down   key.Binding
+	Edit   key.Binding
+	Delete key.Binding
+	Add    key.Binding
+}
+
+func (k secretsKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Add, k.Edit, k.Delete, k.Quit}
+}
+
+func (k secretsKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{}
+}
+
 type secretsModel struct {
+	keys               secretsKeyMap
+	help               help.Model
 	err                error
 	jwtCookie          *http.Cookie
 	address            string
@@ -32,7 +53,7 @@ func NewSecretsModel(address string, jwtCookie *http.Cookie) secretsModel {
 	const (
 		numWidth    = 4
 		idWidth     = 60
-		tableHeight = 7
+		tableHeight = 10
 	)
 	columns := []table.Column{
 		{Title: "#", Width: numWidth},
@@ -57,7 +78,36 @@ func NewSecretsModel(address string, jwtCookie *http.Cookie) secretsModel {
 		Bold(false)
 	t.SetStyles(s)
 
+	keys := secretsKeyMap{
+		Quit: key.NewBinding(
+			key.WithKeys(tea.KeyEsc.String(), tea.KeyCtrlC.String()),
+			key.WithHelp("esc", "quit"),
+		),
+		Add: key.NewBinding(
+			key.WithKeys(tea.KeyCtrlN.String()),
+			key.WithHelp("ctrl+n", "create"),
+		),
+		Edit: key.NewBinding(
+			key.WithKeys(tea.KeyEnter.String()),
+			key.WithHelp("enter", "edit"),
+		),
+		Delete: key.NewBinding(
+			key.WithKeys(tea.KeyDelete.String()),
+			key.WithHelp("del", "delete"),
+		),
+		Up: key.NewBinding(
+			key.WithKeys(tea.KeyUp.String()),
+			key.WithHelp("↑", "move up"),
+		),
+		Down: key.NewBinding(
+			key.WithKeys(tea.KeyDown.String()),
+			key.WithHelp("↓", "move down"),
+		),
+	}
+
 	return secretsModel{
+		keys:      keys,
+		help:      help.New(),
 		address:   address,
 		jwtCookie: jwtCookie,
 		table:     t,
@@ -70,6 +120,8 @@ func (m secretsModel) Init() tea.Cmd {
 
 func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.help.Width = msg.Width
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
 	case listSecretsCompletedMsg:
@@ -106,24 +158,24 @@ func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m secretsModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.Type {
-	case tea.KeyCtrlC, tea.KeyEsc:
+	switch {
+	case key.Matches(msg, m.keys.Quit):
 		return m, tea.Quit
-	case tea.KeyEnter:
+	case key.Matches(msg, m.keys.Edit):
 		{
 			id := m.getSelectedSecretID()
 			model := NewSecretModel(m.address, m.jwtCookie)
 			cmd := getSecret(id, m.address, m.jwtCookie)
 			return model, cmd
 		}
-	case tea.KeyDelete:
+	case key.Matches(msg, m.keys.Delete):
 		{
 			id := m.getSelectedSecretID()
 			model := m
 			cmd := deleteSecret(id, m.address, m.jwtCookie)
 			return model, cmd
 		}
-	case tea.KeyCtrlN:
+	case key.Matches(msg, m.keys.Add):
 		{
 			model := NewSecretModel(m.address, m.jwtCookie)
 			cmd := createSecret()
@@ -149,6 +201,9 @@ func (m secretsModel) View() string {
 	}
 
 	s.WriteString(baseStyle.Render(m.table.View()) + "\n")
+
+	s.WriteString("\n")
+	s.WriteString(m.help.View(m.keys))
 
 	return s.String()
 }

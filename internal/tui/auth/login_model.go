@@ -22,14 +22,11 @@ type loginKeyMap struct {
 }
 
 func (k loginKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Quit, k.Continue}
+	return []key.Binding{k.Continue, k.Quit}
 }
 
 func (k loginKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.Quit, k.Continue},
-		{k.Down, k.Up},
-	}
+	return [][]key.Binding{}
 }
 
 type loginModel struct {
