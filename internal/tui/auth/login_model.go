@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -12,7 +14,27 @@ import (
 
 var choices = []string{"login", "regiser"}
 
+type loginKeyMap struct {
+	Quit     key.Binding
+	Continue key.Binding
+	Up       key.Binding
+	Down     key.Binding
+}
+
+func (k loginKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Quit, k.Continue}
+}
+
+func (k loginKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{k.Quit, k.Continue},
+		{k.Down, k.Up},
+	}
+}
+
 type loginModel struct {
+	keys      loginKeyMap
+	help      help.Model
 	address   string
 	email     string
 	password  string
@@ -26,7 +48,28 @@ func NewLoginModel() loginModel {
 	ti.Placeholder = "Enter server address"
 	ti.Focus()
 
+	keys := loginKeyMap{
+		Quit: key.NewBinding(
+			key.WithKeys(tea.KeyEsc.String(), tea.KeyCtrlC.String()),
+			key.WithHelp("esc", "quit"),
+		),
+		Continue: key.NewBinding(
+			key.WithKeys(tea.KeyEnter.String()),
+			key.WithHelp("enter", "continue"),
+		),
+		Up: key.NewBinding(
+			key.WithKeys(tea.KeyUp.String()),
+			key.WithHelp("↑", "move up"),
+		),
+		Down: key.NewBinding(
+			key.WithKeys(tea.KeyDown.String()),
+			key.WithHelp("↓", "move down"),
+		),
+	}
+
 	return loginModel{
+		keys:      keys,
+		help:      help.New(),
 		textinput: ti,
 	}
 }
@@ -37,6 +80,8 @@ func (m loginModel) Init() tea.Cmd {
 
 func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.help.Width = msg.Width
 	case tea.KeyMsg:
 		return handleKeyMsg(msg, m)
 	case loginCompletedMsg:
@@ -62,10 +107,10 @@ func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func handleKeyMsg(msg tea.KeyMsg, m loginModel) (tea.Model, tea.Cmd) {
-	switch msg.Type {
-	case tea.KeyCtrlC, tea.KeyEsc:
+	switch {
+	case key.Matches(msg, m.keys.Quit):
 		return m, tea.Quit
-	case tea.KeyEnter:
+	case key.Matches(msg, m.keys.Continue):
 		input := m.textinput.Value()
 		acceptInput(&m, input)
 
@@ -78,12 +123,12 @@ func handleKeyMsg(msg tea.KeyMsg, m loginModel) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
-	case tea.KeyDown:
+	case key.Matches(msg, m.keys.Down):
 		m.cursor++
 		if m.cursor >= len(choices) {
 			m.cursor = 0
 		}
-	case tea.KeyUp:
+	case key.Matches(msg, m.keys.Up):
 		m.cursor--
 		if m.cursor < 0 {
 			m.cursor = len(choices) - 1
@@ -131,8 +176,10 @@ func (m loginModel) View() string {
 		s.WriteString("\n")
 	}
 
-	s.WriteString("\n")
 	s.WriteString(m.textinput.View())
+
+	s.WriteString("\n\n")
+	s.WriteString(m.help.View(m.keys))
 
 	return s.String()
 }

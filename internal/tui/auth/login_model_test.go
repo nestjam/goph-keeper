@@ -10,6 +10,7 @@ import (
 	"github.com/nestjam/goph-keeper/internal/tui/vault"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoginModel_Init(t *testing.T) {
@@ -241,6 +242,17 @@ func TestLoginModel_Update(t *testing.T) {
 		assert.True(t, ok)
 		registerCmd := registerCommand{}
 		assertEqualCmd(t, registerCmd.execute, cmd)
+	})
+	t.Run("window size changed", func(t *testing.T) {
+		sut := NewLoginModel()
+		msg := tea.WindowSizeMsg{Width: 100}
+		require.NotEqual(t, msg.Width, sut.help.Width)
+
+		model, _ := sut.Update(msg)
+
+		got, ok := model.(loginModel)
+		assert.True(t, ok)
+		assert.Equal(t, msg.Width, got.help.Width)
 	})
 }
 
