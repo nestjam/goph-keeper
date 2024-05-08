@@ -48,7 +48,7 @@ func NewLoginModel() loginModel {
 	keys := loginKeyMap{
 		Quit: key.NewBinding(
 			key.WithKeys(tea.KeyEsc.String(), tea.KeyCtrlC.String()),
-			key.WithHelp("esc", "quit"),
+			key.WithHelp("ctr+c", "quit"),
 		),
 		Continue: key.NewBinding(
 			key.WithKeys(tea.KeyEnter.String()),

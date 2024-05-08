@@ -81,7 +81,7 @@ func NewSecretsModel(address string, jwtCookie *http.Cookie) secretsModel {
 	keys := secretsKeyMap{
 		Quit: key.NewBinding(
 			key.WithKeys(tea.KeyEsc.String(), tea.KeyCtrlC.String()),
-			key.WithHelp("esc", "quit"),
+			key.WithHelp("ctr+c", quitApp),
 		),
 		Add: key.NewBinding(
 			key.WithKeys(tea.KeyCtrlN.String()),

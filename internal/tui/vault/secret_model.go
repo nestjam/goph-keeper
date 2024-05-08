@@ -5,18 +5,36 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 
 	httpVault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
 )
 
+type secretKeyMap struct {
+	Quit   key.Binding
+	Save   key.Binding
+	Return key.Binding
+}
+
+func (k secretKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Save, k.Return, k.Quit}
+}
+
+func (k secretKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{}
+}
+
 type secretModel struct {
 	textarea           textarea.Model
 	err                error
 	jwtCookie          *http.Cookie
-	address            string
+	help               help.Model
 	secret             httpVault.Secret
+	address            string
+	keys               secretKeyMap
 	failtureStatusCode int
 	isNew              bool
 }
@@ -25,7 +43,24 @@ func NewSecretModel(address string, jwtCookie *http.Cookie) secretModel {
 	ti := textarea.New()
 	ti.Focus()
 
+	keys := secretKeyMap{
+		Quit: key.NewBinding(
+			key.WithKeys(tea.KeyCtrlC.String()),
+			key.WithHelp("ctrl+c", quitApp),
+		),
+		Save: key.NewBinding(
+			key.WithKeys(tea.KeyCtrlS.String()),
+			key.WithHelp("ctrl+s", "save"),
+		),
+		Return: key.NewBinding(
+			key.WithKeys(tea.KeyEsc.String()),
+			key.WithHelp("esc", "return"),
+		),
+	}
+
 	return secretModel{
+		keys:      keys,
+		help:      help.New(),
 		textarea:  ti,
 		address:   address,
 		jwtCookie: jwtCookie,
@@ -38,6 +73,8 @@ func (m secretModel) Init() tea.Cmd {
 
 func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.help.Width = msg.Width
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
 	case getSecretCompletedMsg:
@@ -75,14 +112,14 @@ func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m secretModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.Type {
-	case tea.KeyCtrlC:
+	switch {
+	case key.Matches(msg, m.keys.Quit):
 		return m, tea.Quit
-	case tea.KeyEsc:
+	case key.Matches(msg, m.keys.Return):
 		model := NewSecretsModel(m.address, m.jwtCookie)
 		cmd := listSecrets(m.address, m.jwtCookie)
 		return model, cmd
-	case tea.KeyCtrlS:
+	case key.Matches(msg, m.keys.Save):
 		secret := m.secret
 		secret.Data = m.textarea.Value()
 		cmd := saveSecret(secret, m.address, m.jwtCookie)
@@ -108,6 +145,9 @@ func (m secretModel) View() string {
 
 	s.WriteString(fmt.Sprintf("id: %s\n\n", m.secret.ID))
 	s.WriteString(m.textarea.View())
+
+	s.WriteString("\n\n")
+	s.WriteString(m.help.View(m.keys))
 
 	return s.String()
 }
