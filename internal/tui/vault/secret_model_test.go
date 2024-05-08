@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	httpVault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
 )
@@ -124,5 +125,16 @@ func TestSecretModel_Update(t *testing.T) {
 		assert.Equal(t, want, got.secret)
 		assert.Equal(t, want.Data, got.textarea.Value())
 		assert.False(t, got.isNew)
+	})
+	t.Run("window size changed", func(t *testing.T) {
+		sut := NewSecretModel(address, jwtCookie)
+		msg := tea.WindowSizeMsg{Width: 100}
+		require.NotEqual(t, msg.Width, sut.help.Width)
+
+		model, _ := sut.Update(msg)
+
+		got, ok := model.(secretModel)
+		assert.True(t, ok)
+		assert.Equal(t, msg.Width, got.help.Width)
 	})
 }

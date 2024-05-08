@@ -167,6 +167,17 @@ func TestSecretsModel_Update(t *testing.T) {
 		createSecretCommand := newCreateSecretCommand()
 		assertEqualCmd(t, createSecretCommand.execute, cmd)
 	})
+	t.Run("window size changed", func(t *testing.T) {
+		sut := NewSecretsModel(address, jwtCookie)
+		msg := tea.WindowSizeMsg{Width: 100}
+		require.NotEqual(t, msg.Width, sut.help.Width)
+
+		model, _ := sut.Update(msg)
+
+		got, ok := model.(secretsModel)
+		assert.True(t, ok)
+		assert.Equal(t, msg.Width, got.help.Width)
+	})
 }
 
 func assertEqualCmd(t *testing.T, want, got tea.Cmd) {
