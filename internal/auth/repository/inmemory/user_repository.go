@@ -42,10 +42,6 @@ func (r *userRepository) Register(ctx context.Context, user model.User) (model.U
 	return createdUser, nil
 }
 
-func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (model.User, error) {
-	panic("unimplemented")
-}
-
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (model.User, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
