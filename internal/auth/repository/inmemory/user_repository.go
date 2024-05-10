@@ -27,6 +27,10 @@ func (r *userRepository) Register(ctx context.Context, user model.User) (model.U
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if user.Password == "" {
+		return model.User{}, auth.ErrUserPasswordIsEmpty
+	}
+
 	if _, ok := r.users[user.Email]; ok {
 		return model.User{}, auth.ErrUserWithEmailIsRegistered
 	}

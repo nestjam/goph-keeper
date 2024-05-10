@@ -48,6 +48,19 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 			_, err = sut.Register(ctx, user)
 			require.ErrorIs(t, err, ErrUserWithEmailIsRegistered)
 		})
+		t.Run("register new user with empty password", func(t *testing.T) {
+			sut, tearDown := c.NewUserRepository()
+			t.Cleanup(tearDown)
+			user := model.User{
+				Email:    "user@email.com",
+				Password: "",
+			}
+			ctx := context.Background()
+
+			_, err := sut.Register(ctx, user)
+
+			require.ErrorIs(t, err, ErrUserPasswordIsEmpty)
+		})
 	})
 
 	t.Run("find user by email", func(t *testing.T) {

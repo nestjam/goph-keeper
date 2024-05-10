@@ -68,10 +68,15 @@ func (r *userRepository) Register(ctx context.Context, user model.User) (model.U
 	err = row.Scan(&user.ID)
 
 	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) &&
-		pgErr.Code == pgerrcode.UniqueViolation &&
-		pgErr.ConstraintName == "users_email_key" {
-		return model.User{}, auth.ErrUserWithEmailIsRegistered
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == pgerrcode.UniqueViolation &&
+			pgErr.ConstraintName == "users_email_key" {
+			return model.User{}, auth.ErrUserWithEmailIsRegistered
+		}
+		if pgErr.Code == pgerrcode.CheckViolation &&
+			pgErr.ConstraintName == "users_password_check" {
+			return model.User{}, auth.ErrUserPasswordIsEmpty
+		}
 	}
 	if err != nil {
 		return model.User{}, errors.Wrap(err, op)

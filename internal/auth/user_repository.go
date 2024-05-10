@@ -9,6 +9,7 @@ import (
 
 var (
 	ErrUserWithEmailIsRegistered = errors.New("user with email has already been registered")
+	ErrUserPasswordIsEmpty       = errors.New("user password is empty")
 	ErrUserIsNotRegistered       = errors.New("user is not registered")
 )
 
