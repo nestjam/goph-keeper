@@ -103,9 +103,11 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (model.U
 	const sql = "SELECT user_id, email, password FROM users WHERE email=$1"
 	row := conn.QueryRow(ctx, sql, email)
 	err = row.Scan(&user.ID, &user.Email, &user.Password)
-
 	if errors.Is(err, pgx.ErrNoRows) {
 		return model.User{}, auth.ErrUserIsNotRegistered
+	}
+	if err != nil {
+		return model.User{}, errors.Wrap(err, op)
 	}
 
 	return user, nil
