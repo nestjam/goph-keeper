@@ -31,7 +31,7 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, user.Email, got.Email)
 			assert.Equal(t, user.Password, got.Password)
-			assert.NotEqual(t, uuid.UUID{}, got.ID)
+			assert.NotEqual(t, uuid.Nil, got.ID)
 		})
 		t.Run("register user with email that has already been registered", func(t *testing.T) {
 			sut, tearDown := c.NewUserRepository()
@@ -55,7 +55,8 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 			sut, tearDown := c.NewUserRepository()
 			t.Cleanup(tearDown)
 			user := model.User{
-				Email: "user@email.com",
+				Email:    "user@email.com",
+				Password: "123",
 			}
 			ctx := context.Background()
 			want, err := sut.Register(ctx, user)
