@@ -64,7 +64,7 @@ func (r *userRepository) Register(ctx context.Context, user model.User) (model.U
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	const sql = `INSERT INTO users (email, password) VALUES ($1, $2) RETURNING user_id;`
-	row := conn.QueryRow(ctx, sql, user.Email, user.Password)
+	row := tx.QueryRow(ctx, sql, user.Email, user.Password)
 	err = row.Scan(&user.ID)
 
 	var pgErr *pgconn.PgError

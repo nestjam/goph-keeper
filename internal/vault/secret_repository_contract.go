@@ -11,18 +11,24 @@ import (
 	"github.com/nestjam/goph-keeper/internal/vault/model"
 )
 
+type SecretTestData struct {
+	Users uuid.UUIDs
+	Keys  uuid.UUIDs
+}
+
 type SecretRepositoryContract struct {
-	NewSecretRepository func() (SecretRepository, func())
+	NewSecretRepository func() (SecretRepository, func(), SecretTestData)
 }
 
 func (c SecretRepositoryContract) Test(t *testing.T) {
 	t.Run("add secret", func(t *testing.T) {
-		sut, tearDown := c.NewSecretRepository()
+		sut, tearDown, td := c.NewSecretRepository()
 		t.Cleanup(tearDown)
 		secret := &model.Secret{
-			Data: []byte("data"),
+			Data:  []byte("data"),
+			KeyID: td.Keys[0],
 		}
-		userID := uuid.New()
+		userID := td.Users[0]
 		ctx := context.Background()
 
 		got, err := sut.AddSecret(ctx, secret, userID)
@@ -32,10 +38,10 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 	})
 
 	t.Run("update secret", func(t *testing.T) {
-		sut, tearDown := c.NewSecretRepository()
+		sut, tearDown, td := c.NewSecretRepository()
 		t.Cleanup(tearDown)
-		secret := &model.Secret{}
-		userID := uuid.New()
+		secret := &model.Secret{KeyID: td.Keys[0]}
+		userID := td.Users[0]
 		ctx := context.Background()
 		var err error
 		secret.ID, err = sut.AddSecret(ctx, secret, userID)
@@ -50,7 +56,7 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		assert.Equal(t, secret.Data, got.Data)
 	})
 	t.Run("update secret that does not exist", func(t *testing.T) {
-		sut, tearDown := c.NewSecretRepository()
+		sut, tearDown, _ := c.NewSecretRepository()
 		t.Cleanup(tearDown)
 		secret := &model.Secret{ID: uuid.New()}
 		userID := uuid.New()
@@ -63,9 +69,9 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 
 	t.Run("list secrets", func(t *testing.T) {
 		t.Run("user has no secrets", func(t *testing.T) {
-			sut, tearDown := c.NewSecretRepository()
+			sut, tearDown, td := c.NewSecretRepository()
 			t.Cleanup(tearDown)
-			userID := uuid.New()
+			userID := td.Keys[0]
 			ctx := context.Background()
 
 			got, err := sut.ListSecrets(ctx, userID)
@@ -74,12 +80,13 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 			assert.Empty(t, got)
 		})
 		t.Run("list user secrets without sensitive data", func(t *testing.T) {
-			sut, tearDown := c.NewSecretRepository()
+			sut, tearDown, td := c.NewSecretRepository()
 			t.Cleanup(tearDown)
-			userID := uuid.New()
+			userID := td.Users[0]
 			ctx := context.Background()
 			secret := &model.Secret{
-				Data: []byte("data_"),
+				Data:  []byte("data_"),
+				KeyID: td.Keys[0],
 			}
 			var err error
 			secret.ID, err = sut.AddSecret(ctx, secret, userID)
@@ -94,19 +101,19 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 			assert.Equal(t, want, got)
 		})
 		t.Run("list secrets of selected user", func(t *testing.T) {
-			sut, tearDown := c.NewSecretRepository()
+			sut, tearDown, td := c.NewSecretRepository()
 			t.Cleanup(tearDown)
-			userID := uuid.New()
+			userID := td.Users[0]
 			ctx := context.Background()
-			s1 := &model.Secret{}
+			s1 := &model.Secret{KeyID: td.Keys[0]}
 			var err error
 			s1.ID, err = sut.AddSecret(ctx, s1, userID)
 			require.NoError(t, err)
-			s2 := &model.Secret{}
+			s2 := &model.Secret{KeyID: td.Keys[0]}
 			s2.ID, err = sut.AddSecret(ctx, s2, userID)
 			require.NoError(t, err)
-			user2ID := uuid.New()
-			s3 := &model.Secret{}
+			user2ID := td.Users[1]
+			s3 := &model.Secret{KeyID: td.Keys[0]}
 			_, err = sut.AddSecret(ctx, s3, user2ID)
 			require.NoError(t, err)
 			want := []*model.Secret{
@@ -122,10 +129,10 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 
 		t.Run("get secret", func(t *testing.T) {
 			t.Run("get user secret", func(t *testing.T) {
-				sut, tearDown := c.NewSecretRepository()
+				sut, tearDown, td := c.NewSecretRepository()
 				t.Cleanup(tearDown)
-				want := &model.Secret{}
-				userID := uuid.New()
+				want := &model.Secret{KeyID: td.Keys[0]}
+				userID := td.Users[0]
 				ctx := context.Background()
 				var err error
 				want.ID, err = sut.AddSecret(ctx, want, userID)
@@ -137,10 +144,10 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 				assert.Equal(t, want, got)
 			})
 			t.Run("user does not have the secret", func(t *testing.T) {
-				sut, tearDown := c.NewSecretRepository()
+				sut, tearDown, td := c.NewSecretRepository()
 				t.Cleanup(tearDown)
-				secret := &model.Secret{}
-				userID := uuid.New()
+				secret := &model.Secret{KeyID: td.Keys[0]}
+				userID := td.Users[0]
 				ctx := context.Background()
 				_, err := sut.AddSecret(ctx, secret, userID)
 				require.NoError(t, err)
@@ -151,7 +158,7 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 				require.ErrorIs(t, err, ErrSecretNotFound)
 			})
 			t.Run("user with id does not exist", func(t *testing.T) {
-				sut, tearDown := c.NewSecretRepository()
+				sut, tearDown, _ := c.NewSecretRepository()
 				t.Cleanup(tearDown)
 				userID := uuid.New()
 				ctx := context.Background()
@@ -165,11 +172,11 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 
 		t.Run("delete secret", func(t *testing.T) {
 			t.Run("delete user secret", func(t *testing.T) {
-				sut, tearDown := c.NewSecretRepository()
+				sut, tearDown, td := c.NewSecretRepository()
 				t.Cleanup(tearDown)
-				userID := uuid.New()
+				userID := td.Users[0]
 				ctx := context.Background()
-				want := &model.Secret{}
+				want := &model.Secret{KeyID: td.Keys[0]}
 				var err error
 				want.ID, err = sut.AddSecret(ctx, want, userID)
 				require.NoError(t, err)
@@ -179,10 +186,10 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 				require.NoError(t, err)
 			})
 			t.Run("user does not have the secret (on delete secret)", func(t *testing.T) {
-				sut, tearDown := c.NewSecretRepository()
+				sut, tearDown, td := c.NewSecretRepository()
 				t.Cleanup(tearDown)
-				secret := &model.Secret{}
-				userID := uuid.New()
+				secret := &model.Secret{KeyID: td.Keys[0]}
+				userID := td.Users[0]
 				ctx := context.Background()
 				_, err := sut.AddSecret(ctx, secret, userID)
 				require.NoError(t, err)
@@ -193,7 +200,7 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 				require.NoError(t, err)
 			})
 			t.Run("user with id does not exist (on delete secret)", func(t *testing.T) {
-				sut, tearDown := c.NewSecretRepository()
+				sut, tearDown, _ := c.NewSecretRepository()
 				t.Cleanup(tearDown)
 				userID := uuid.New()
 				ctx := context.Background()

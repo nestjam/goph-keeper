@@ -68,7 +68,7 @@ func (r *dataKeyRepository) RotateKey(ctx context.Context, key *model.DataKey) (
 	}
 
 	const sql = `INSERT INTO keys (key_data) VALUES ($1) RETURNING key_id;`
-	row := conn.QueryRow(ctx, sql, key.Key)
+	row := tx.QueryRow(ctx, sql, key.Key)
 	err = row.Scan(&key.ID)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
@@ -151,7 +151,7 @@ func (r *dataKeyRepository) UpdateStats(ctx context.Context, id uuid.UUID, dataS
 	var size int64
 	const sql = `SELECT COALESCE(encriptions_count, 0), COALESCE(encrypted_data_size, 0)
 FROM keys WHERE key_id=$1`
-	row := conn.QueryRow(ctx, sql, id)
+	row := tx.QueryRow(ctx, sql, id)
 	err = row.Scan(&count, &size)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return vault.ErrKeyNotFound

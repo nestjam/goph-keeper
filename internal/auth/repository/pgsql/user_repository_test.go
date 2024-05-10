@@ -9,8 +9,8 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nestjam/goph-keeper/internal/utils"
 	"github.com/nestjam/goph-keeper/internal/auth"
+	"github.com/nestjam/goph-keeper/internal/utils"
 	"github.com/nestjam/goph-keeper/migration"
 )
 
