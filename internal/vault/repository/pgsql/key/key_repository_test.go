@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 	h.Run(m)
 }
 
-func TestKeyRepositoryContract(t *testing.T) {
+func TestKeyRepository(t *testing.T) {
 	vault.DataKeyRepositoryContract{
 		NewDataKeyRepository: func() (vault.DataKeyRepository, func()) {
 			t.Helper()
