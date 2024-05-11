@@ -1,10 +1,13 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"os"
 
 	"github.com/pkg/errors"
 
+	"github.com/nestjam/goph-keeper/internal/config"
 	"github.com/nestjam/goph-keeper/internal/server"
 )
 
@@ -15,21 +18,47 @@ func NewApp() *app {
 	return &app{}
 }
 
-func (a *app) Run(ctx context.Context) error {
+func (a *app) Run(ctx context.Context, args []string) error {
 	const op = "run app"
 
-	const (
-		baseURL  = "localhost:8080"
-		rootKey  = "N3SaEN8k2z3?DCf@4&8j+Yc92pTrFt6W"
-		certFile = "servercert.crt"
-		keyfile  = "servercert.key"
-	)
+	conf, err := getConfig(args)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
 
-	s := server.New(baseURL, rootKey, certFile, keyfile)
+	s := server.New(conf)
 
 	if err := s.Run(ctx); err != nil {
 		return errors.Wrap(err, op)
 	}
 
 	return nil
+}
+
+func getConfig(args []string) (*config.Config, error) {
+	const op = "run app"
+
+	confFile, err := config.NewConfigFile(args)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	opts := []config.ConfigOption{
+		config.FromArgs(args),
+	}
+
+	if confFile != nil {
+		b, err := os.ReadFile(confFile.Name)
+		if err != nil {
+			return nil, errors.Wrap(err, op)
+		}
+		opts = append(opts, config.FromYaml(bytes.NewReader(b)))
+	}
+
+	conf, err := config.New(opts...)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	return conf, nil
 }

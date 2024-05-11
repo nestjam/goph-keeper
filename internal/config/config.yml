@@ -1,0 +1,5 @@
+server:
+  address: localhost:8080  
+
+postgres:
+  dataSourceName: postgres://postgres:postgres@localhost:5432/goph-keeper?sslmode=disable

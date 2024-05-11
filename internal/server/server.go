@@ -6,31 +6,32 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/nestjam/goph-keeper/internal/config"
 	"github.com/nestjam/goph-keeper/internal/vault/model"
 )
 
 type Server struct {
-	rootKey  *model.MasterKey
-	baseURL  string
-	certFile string
-	keyFile  string
+	conf    *config.Config
+	rootKey *model.MasterKey
 }
 
-func New(baseURL, rootKey, certFile, keyFile string) *Server {
+func New(conf *config.Config) *Server {
 	return &Server{
-		baseURL:  baseURL,
-		rootKey:  model.NewMasterKey([]byte(rootKey)),
-		certFile: certFile,
-		keyFile:  keyFile,
+		conf:    conf,
+		rootKey: model.NewMasterKey([]byte(conf.Vault.MasterKey)),
 	}
 }
 
 func (s *Server) Run(ctx context.Context) error {
 	const op = "run server"
 
-	h := s.mapHandlers()
+	h, err := s.mapHandlers(ctx)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
 
-	if err := http.ListenAndServeTLS(s.baseURL, s.certFile, s.keyFile, h); err != nil {
+	c := s.conf.Server
+	if err := http.ListenAndServeTLS(c.Address, c.CertFile, c.KeyFile, h); err != nil {
 		return errors.Wrap(err, op)
 	}
 
