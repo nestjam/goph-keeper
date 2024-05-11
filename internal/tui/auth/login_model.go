@@ -31,16 +31,16 @@ func (k loginKeyMap) FullHelp() [][]key.Binding {
 }
 
 type loginModel struct {
-	keys         loginKeyMap
+	err          error
 	help         help.Model
 	address      string
 	email        string
 	password     string
-	err          error
-	textinput    textinput.Model
-	cursor       int
 	BuildVersion string
 	BuildDate    string
+	keys         loginKeyMap
+	textinput    textinput.Model
+	cursor       int
 }
 
 func NewLoginModel() loginModel {
