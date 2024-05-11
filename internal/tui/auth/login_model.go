@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -30,14 +31,16 @@ func (k loginKeyMap) FullHelp() [][]key.Binding {
 }
 
 type loginModel struct {
-	keys      loginKeyMap
-	help      help.Model
-	address   string
-	email     string
-	password  string
-	err       error
-	textinput textinput.Model
-	cursor    int
+	keys         loginKeyMap
+	help         help.Model
+	address      string
+	email        string
+	password     string
+	err          error
+	textinput    textinput.Model
+	cursor       int
+	BuildVersion string
+	BuildDate    string
 }
 
 func NewLoginModel() loginModel {
@@ -140,6 +143,9 @@ func handleKeyMsg(msg tea.KeyMsg, m loginModel) (tea.Model, tea.Cmd) {
 
 func (m loginModel) View() string {
 	s := strings.Builder{}
+
+	s.WriteString(fmt.Sprintf("ver: %s, date: %s\n", m.BuildVersion, m.BuildDate))
+	s.WriteString("\n")
 
 	for i := 0; i < len(choices); i++ {
 		if m.cursor == i {
