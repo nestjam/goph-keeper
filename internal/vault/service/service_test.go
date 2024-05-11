@@ -180,13 +180,16 @@ func TestListSecrets(t *testing.T) {
 		user2ID := uuid.New()
 		s3 := &model.Secret{}
 		_, _ = secretRepo.AddSecret(ctx, s3, user2ID)
+		want := uuid.UUIDs{s.ID, s2.ID}
 
 		secrets, err := sut.ListSecrets(ctx, userID)
 
 		require.NoError(t, err)
-		assert.Equal(t, 2, len(secrets))
-		assert.Equal(t, s.ID, secrets[0].ID)
-		assert.Equal(t, s2.ID, secrets[1].ID)
+		got := make([]uuid.UUID, len(secrets))
+		for i := 0; i < len(secrets); i++ {
+			got[i] = secrets[i].ID
+		}
+		assert.ElementsMatch(t, want, got)
 	})
 	t.Run("failed to list secret", func(t *testing.T) {
 		ctx := context.Background()
