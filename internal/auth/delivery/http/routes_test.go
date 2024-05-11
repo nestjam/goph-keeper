@@ -84,7 +84,7 @@ func TestMapAuthRoutes(t *testing.T) {
 func registerUser(t *testing.T, ctx context.Context, email, password string, repo auth.UserRepository) {
 	t.Helper()
 
-	user := model.User{Email: email, Password: password}
+	user := &model.User{Email: email, Password: password}
 	err := user.HashPassword()
 	require.NoError(t, err)
 	_, err = repo.Register(ctx, user)

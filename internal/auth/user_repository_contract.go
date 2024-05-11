@@ -20,7 +20,7 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 		t.Run("register new user", func(t *testing.T) {
 			sut, tearDown := c.NewUserRepository()
 			t.Cleanup(tearDown)
-			user := model.User{
+			user := &model.User{
 				Email:    "user@email.com",
 				Password: "123",
 			}
@@ -29,14 +29,12 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 			got, err := sut.Register(ctx, user)
 
 			require.NoError(t, err)
-			assert.Equal(t, user.Email, got.Email)
-			assert.Equal(t, user.Password, got.Password)
-			assert.NotEqual(t, uuid.Nil, got.ID)
+			assert.NotEqual(t, uuid.Nil, got)
 		})
 		t.Run("register user with email that has already been registered", func(t *testing.T) {
 			sut, tearDown := c.NewUserRepository()
 			t.Cleanup(tearDown)
-			user := model.User{
+			user := &model.User{
 				Email:    "user@email.com",
 				Password: "123",
 			}
@@ -51,7 +49,7 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 		t.Run("register new user with empty password", func(t *testing.T) {
 			sut, tearDown := c.NewUserRepository()
 			t.Cleanup(tearDown)
-			user := model.User{
+			user := &model.User{
 				Email:    "user@email.com",
 				Password: "",
 			}
@@ -67,17 +65,18 @@ func (c UserRepositoryContract) Test(t *testing.T) {
 		t.Run("find existing user", func(t *testing.T) {
 			sut, tearDown := c.NewUserRepository()
 			t.Cleanup(tearDown)
-			user := model.User{
+			user := &model.User{
 				Email:    "user@email.com",
 				Password: "123",
 			}
 			ctx := context.Background()
-			want, err := sut.Register(ctx, user)
+			wantID, err := sut.Register(ctx, user)
 			require.NoError(t, err)
 
 			got, err := sut.FindByEmail(ctx, user.Email)
+
 			require.NoError(t, err)
-			assert.Equal(t, want.ID, got.ID)
+			assert.Equal(t, wantID, got.ID)
 			assert.Equal(t, user.Email, got.Email)
 		})
 		t.Run("find user that does not exist", func(t *testing.T) {

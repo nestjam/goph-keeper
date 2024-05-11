@@ -11,42 +11,42 @@ import (
 )
 
 type userRepository struct {
-	users map[string]model.User
+	users map[string]*model.User
 	ids   map[uuid.UUID]struct{}
 	mu    sync.Mutex
 }
 
 func NewUserRepository() auth.UserRepository {
 	return &userRepository{
-		users: make(map[string]model.User),
+		users: make(map[string]*model.User),
 		ids:   make(map[uuid.UUID]struct{}),
 	}
 }
 
-func (r *userRepository) Register(ctx context.Context, user model.User) (model.User, error) {
+func (r *userRepository) Register(ctx context.Context, user *model.User) (uuid.UUID, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if user.Password == "" {
-		return model.User{}, auth.ErrUserPasswordIsEmpty
+		return uuid.Nil, auth.ErrUserPasswordIsEmpty
 	}
 
 	if _, ok := r.users[user.Email]; ok {
-		return model.User{}, auth.ErrUserWithEmailIsRegistered
+		return uuid.Nil, auth.ErrUserWithEmailIsRegistered
 	}
 
 	id := uuid.New()
-	createdUser := model.User{
+	createdUser := &model.User{
 		ID:       id,
 		Email:    user.Email,
 		Password: user.Password,
 	}
 	r.users[createdUser.Email] = createdUser
 
-	return createdUser, nil
+	return id, nil
 }
 
-func (r *userRepository) FindByEmail(ctx context.Context, email string) (model.User, error) {
+func (r *userRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -54,5 +54,5 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (model.U
 		return user, nil
 	}
 
-	return model.User{}, auth.ErrUserIsNotRegistered
+	return nil, auth.ErrUserIsNotRegistered
 }

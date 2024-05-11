@@ -9,6 +9,7 @@ require (
 	github.com/lestrrat-go/jwx/v2 v2.0.20
 	github.com/ory/dockertest/v3 v3.10.0
 	github.com/pkg/errors v0.9.1
+	github.com/spf13/pflag v1.0.5
 )
 
 require (
@@ -67,7 +68,6 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect

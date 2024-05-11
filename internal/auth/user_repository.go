@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
+
 	"github.com/nestjam/goph-keeper/internal/auth/model"
 )
 
@@ -14,6 +16,6 @@ var (
 )
 
 type UserRepository interface {
-	Register(ctx context.Context, user model.User) (model.User, error)
-	FindByEmail(ctx context.Context, email string) (model.User, error)
+	Register(ctx context.Context, user *model.User) (uuid.UUID, error)
+	FindByEmail(ctx context.Context, email string) (*model.User, error)
 }

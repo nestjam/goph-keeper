@@ -3,6 +3,7 @@ package pgsql
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -47,19 +48,19 @@ func (r *userRepository) Close() {
 	r.pool.Close()
 }
 
-func (r *userRepository) Register(ctx context.Context, user model.User) (model.User, error) {
+func (r *userRepository) Register(ctx context.Context, user *model.User) (uuid.UUID, error) {
 	const op = "register"
 
 	conn, err := r.pool.Acquire(ctx)
 	if err != nil {
-		return model.User{}, errors.Wrap(err, op)
+		return uuid.Nil, errors.Wrap(err, op)
 	}
 	defer conn.Release()
 
 	var txOptions pgx.TxOptions
 	tx, err := conn.BeginTx(ctx, txOptions)
 	if err != nil {
-		return model.User{}, errors.Wrap(err, op)
+		return uuid.Nil, errors.Wrap(err, op)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
@@ -71,31 +72,31 @@ func (r *userRepository) Register(ctx context.Context, user model.User) (model.U
 	if errors.As(err, &pgErr) {
 		if pgErr.Code == pgerrcode.UniqueViolation &&
 			pgErr.ConstraintName == "users_email_key" {
-			return model.User{}, auth.ErrUserWithEmailIsRegistered
+			return uuid.Nil, auth.ErrUserWithEmailIsRegistered
 		}
 		if pgErr.Code == pgerrcode.CheckViolation &&
 			pgErr.ConstraintName == "users_password_check" {
-			return model.User{}, auth.ErrUserPasswordIsEmpty
+			return uuid.Nil, auth.ErrUserPasswordIsEmpty
 		}
 	}
 	if err != nil {
-		return model.User{}, errors.Wrap(err, op)
+		return uuid.Nil, errors.Wrap(err, op)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return model.User{}, errors.Wrap(err, op)
+		return uuid.Nil, errors.Wrap(err, op)
 	}
 
-	return user, nil
+	return user.ID, nil
 }
 
-func (r *userRepository) FindByEmail(ctx context.Context, email string) (model.User, error) {
+func (r *userRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
 	const op = "find by email"
 
 	conn, err := r.pool.Acquire(ctx)
 	if err != nil {
-		return model.User{}, errors.Wrap(err, op)
+		return nil, errors.Wrap(err, op)
 	}
 	defer conn.Release()
 
@@ -104,13 +105,13 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (model.U
 	row := conn.QueryRow(ctx, sql, email)
 	err = row.Scan(&user.ID, &user.Email, &user.Password)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return model.User{}, auth.ErrUserIsNotRegistered
+		return nil, auth.ErrUserIsNotRegistered
 	}
 	if err != nil {
-		return model.User{}, errors.Wrap(err, op)
+		return nil, errors.Wrap(err, op)
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func initPool(ctx context.Context, connString string) (*pgxpool.Pool, error) {

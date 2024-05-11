@@ -59,12 +59,12 @@ func setupUsers(t *testing.T) uuid.UUIDs {
 	r, err := pgsql.NewUserRepository(ctx, h.DataSourceName)
 	require.NoError(t, err)
 
-	user, err := r.Register(ctx, modelAuth.User{Email: "user@email.com", Password: "1"})
+	userID, err := r.Register(ctx, &modelAuth.User{Email: "user@email.com", Password: "1"})
 	require.NoError(t, err)
-	user2, err := r.Register(ctx, modelAuth.User{Email: "user2@email.com", Password: "2"})
+	user2ID, err := r.Register(ctx, &modelAuth.User{Email: "user2@email.com", Password: "2"})
 	require.NoError(t, err)
 
-	return uuid.UUIDs{user.ID, user2.ID}
+	return uuid.UUIDs{userID, user2ID}
 }
 
 func setupKeys(t *testing.T) uuid.UUIDs {

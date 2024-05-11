@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
 	"github.com/nestjam/goph-keeper/internal/auth"
@@ -50,13 +51,13 @@ func (h *AuthHandlers) Register() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		newUser, err := h.service.Register(ctx, user)
+		userID, err := h.service.Register(ctx, user)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		err = setAuthCookie(w, newUser, h.cookieBaker)
+		err = setAuthCookie(w, userID, h.cookieBaker)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -76,13 +77,13 @@ func (h *AuthHandlers) Login() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		user, err = h.service.Login(ctx, user)
+		userID, err := h.service.Login(ctx, user)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		err = setAuthCookie(w, user, h.cookieBaker)
+		err = setAuthCookie(w, userID, h.cookieBaker)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -92,10 +93,10 @@ func (h *AuthHandlers) Login() http.HandlerFunc {
 	})
 }
 
-func setAuthCookie(w http.ResponseWriter, user model.User, baker *utils.AuthCookieBaker) error {
+func setAuthCookie(w http.ResponseWriter, userID uuid.UUID, baker *utils.AuthCookieBaker) error {
 	const op = "set auth cookie"
 
-	cookie, err := baker.BakeCookie(user.ID)
+	cookie, err := baker.BakeCookie(userID)
 	if err != nil {
 		return errors.Wrap(err, op)
 	}
@@ -104,15 +105,15 @@ func setAuthCookie(w http.ResponseWriter, user model.User, baker *utils.AuthCook
 	return nil
 }
 
-func getUser(r io.Reader) (model.User, error) {
+func getUser(r io.Reader) (*model.User, error) {
 	const op = "get user"
 	var userRequest RegisterUserRequest
 	decoder := json.NewDecoder(r)
 	err := decoder.Decode(&userRequest)
 	if err != nil {
-		return model.User{}, errors.Wrap(err, op)
+		return nil, errors.Wrap(err, op)
 	}
-	user := model.User{
+	user := &model.User{
 		Email:    userRequest.Email,
 		Password: userRequest.Password,
 	}
