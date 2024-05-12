@@ -21,6 +21,7 @@ type getSecretCompletedMsg struct {
 }
 
 type getSecretFailedMsg struct {
+	secretID   string
 	statusCode int
 }
 

@@ -45,5 +45,8 @@ func (c getSecretCommand) execute() tea.Msg {
 		return getSecretCompletedMsg{res.Secret}
 	}
 
-	return getSecretFailedMsg{resp.StatusCode()}
+	return getSecretFailedMsg{
+		statusCode: resp.StatusCode(),
+		secretID:   c.secretID,
+	}
 }

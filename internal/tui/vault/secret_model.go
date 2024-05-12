@@ -11,7 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/nestjam/goph-keeper/internal/tui/vault/cache"
-	httpVault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
+	vault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
 )
 
 type secretKeyMap struct {
@@ -34,14 +34,15 @@ type secretModel struct {
 	jwtCookie          *http.Cookie
 	cache              *cache.SecretsCache
 	help               help.Model
-	secret             httpVault.Secret
+	secret             vault.Secret
 	address            string
 	keys               secretKeyMap
 	failtureStatusCode int
 	isNew              bool
+	isOffline          bool
 }
 
-func NewSecretModel(address string, jwtCookie *http.Cookie) secretModel {
+func NewSecretModel(address string, jwtCookie *http.Cookie, cache *cache.SecretsCache) secretModel {
 	ti := textarea.New()
 	ti.Focus()
 
@@ -66,6 +67,7 @@ func NewSecretModel(address string, jwtCookie *http.Cookie) secretModel {
 		textarea:  ti,
 		address:   address,
 		jwtCookie: jwtCookie,
+		cache:     cache,
 	}
 }
 
@@ -82,27 +84,35 @@ func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case getSecretCompletedMsg:
 		{
 			m.secret = msg.secret
+			m.cache.CacheSecret(&msg.secret)
 			m.textarea.SetValue(m.secret.Data)
 		}
 	case getSecretFailedMsg:
 		{
 			m.failtureStatusCode = msg.statusCode
+			m.setOfflineMode(true)
 			m.textarea.Blur()
+
+			if secret, ok := m.cache.GetSecret(msg.secretID); ok {
+				m.textarea.SetValue(secret.Data)
+			}
 		}
 	case createSecretRequestedMsg:
 		{
-			m.secret = httpVault.Secret{}
+			m.secret = vault.Secret{}
 			m.isNew = true
 		}
 	case saveSecretCompletedMsg:
 		{
 			m.secret = msg.secret
+			m.cache.CacheSecret(&msg.secret)
 			m.textarea.SetValue(msg.secret.Data)
 			m.isNew = false
 		}
 	case errMsg:
 		{
 			m.err = msg.err
+			m.setOfflineMode(true)
 			m.textarea.Blur()
 		}
 	default:
@@ -111,6 +121,35 @@ func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.textarea, cmd = m.textarea.Update(msg)
 	return m, cmd
+}
+
+func (m secretModel) View() string {
+	s := strings.Builder{}
+
+	if m.isOffline {
+		s.WriteString("offline mode")
+		s.WriteString("\n")
+	}
+
+	if m.err != nil {
+		s.WriteString(fmt.Sprintf(errTemplate, m.err.Error()))
+	}
+	if m.failtureStatusCode != 0 {
+		s.WriteString(fmt.Sprintf(codeTemplate, m.failtureStatusCode))
+	}
+
+	s.WriteString(fmt.Sprintf("id: %s\n\n", m.secret.ID))
+	s.WriteString(m.textarea.View())
+
+	s.WriteString("\n\n")
+	s.WriteString(m.help.View(m.keys))
+
+	return s.String()
+}
+
+func (m *secretModel) setOfflineMode(v bool) {
+	m.isOffline = v
+	m.keys.Save.SetEnabled(!v)
 }
 
 func (m secretModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -135,31 +174,12 @@ func (m secretModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func (m secretModel) View() string {
-	s := strings.Builder{}
-
-	if m.err != nil {
-		s.WriteString(fmt.Sprintf(errTemplate, m.err.Error()))
-	}
-	if m.failtureStatusCode != 0 {
-		s.WriteString(fmt.Sprintf(codeTemplate, m.failtureStatusCode))
-	}
-
-	s.WriteString(fmt.Sprintf("id: %s\n\n", m.secret.ID))
-	s.WriteString(m.textarea.View())
-
-	s.WriteString("\n\n")
-	s.WriteString(m.help.View(m.keys))
-
-	return s.String()
-}
-
 func listSecrets(address string, jwtCookie *http.Cookie) tea.Cmd {
 	cmd := NewListSecretsCommand(address, jwtCookie)
 	return cmd.Execute
 }
 
-func saveSecret(secret httpVault.Secret, address string, jwtCookie *http.Cookie) tea.Cmd {
+func saveSecret(secret vault.Secret, address string, jwtCookie *http.Cookie) tea.Cmd {
 	cmd := newSaveSecretCommand(secret, address, jwtCookie)
 	return cmd.execute
 }

@@ -211,7 +211,7 @@ func (m SecretsModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Edit):
 		{
 			id := m.getSelectedSecretID()
-			model := NewSecretModel(m.address, m.jwtCookie)
+			model := NewSecretModel(m.address, m.jwtCookie, m.cache)
 			cmd := getSecret(id, m.address, m.jwtCookie)
 			return model, cmd
 		}
@@ -224,7 +224,7 @@ func (m SecretsModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case key.Matches(msg, m.keys.Add):
 		{
-			model := NewSecretModel(m.address, m.jwtCookie)
+			model := NewSecretModel(m.address, m.jwtCookie, m.cache)
 			cmd := createSecret()
 			return model, cmd
 		}

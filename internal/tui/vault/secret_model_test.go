@@ -9,7 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	httpVault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
+	"github.com/nestjam/goph-keeper/internal/tui/vault/cache"
+	vault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
 )
 
 func TestSecretModel_Init(t *testing.T) {
@@ -17,8 +18,8 @@ func TestSecretModel_Init(t *testing.T) {
 		address   = "/"
 		jwtCookie = &http.Cookie{}
 	)
-
-	sut := NewSecretModel(address, jwtCookie)
+	cache := cache.New()
+	sut := NewSecretModel(address, jwtCookie, cache)
 
 	got := sut.Init()
 
@@ -32,7 +33,8 @@ func TestSecretModel_Update(t *testing.T) {
 	)
 
 	t.Run("user exited by ctrl+c", func(t *testing.T) {
-		sut := NewSecretModel(address, jwtCookie)
+		cache := cache.New()
+		sut := NewSecretModel(address, jwtCookie, cache)
 		msg := tea.KeyMsg{Type: tea.KeyCtrlC}
 
 		_, cmd := sut.Update(msg)
@@ -40,41 +42,68 @@ func TestSecretModel_Update(t *testing.T) {
 		assertEqualCmd(t, tea.Quit, cmd)
 	})
 	t.Run("get secret request completed", func(t *testing.T) {
-		sut := tea.Model(NewSecretModel(address, jwtCookie))
-		want := httpVault.Secret{ID: "1", Data: "data"}
+		cache := cache.New()
+		sut := tea.Model(NewSecretModel(address, jwtCookie, cache))
+		wantSecret := vault.Secret{ID: "1", Data: "data"}
 		msg := getSecretCompletedMsg{
-			secret: want,
+			secret: wantSecret,
 		}
 
 		model, cmd := sut.Update(msg)
 
-		m, _ := model.(secretModel)
-		got := m.secret
-		assert.Equal(t, want, got)
+		got, _ := model.(secretModel)
+		gotSecret := got.secret
+		assert.Equal(t, wantSecret, gotSecret)
 		assert.Nil(t, cmd)
+		cachedSecret, ok := cache.GetSecret(wantSecret.ID)
+		require.True(t, ok)
+		assert.Equal(t, wantSecret, *cachedSecret)
 	})
 	t.Run("error on get secret", func(t *testing.T) {
-		sut := NewSecretModel(address, jwtCookie)
+		cache := cache.New()
+		sut := NewSecretModel(address, jwtCookie, cache)
 		msg := errMsg{errors.New("error")}
 
 		model, _ := sut.Update(msg)
 
 		got, _ := model.(secretModel)
 		assert.Equal(t, msg.err, got.err)
+		assert.True(t, got.isOffline)
+		assert.False(t, got.keys.Save.Enabled())
 	})
 	t.Run("failed to get secret", func(t *testing.T) {
-		sut := NewSecretModel(address, jwtCookie)
+		cache := cache.New()
+		sut := NewSecretModel(address, jwtCookie, cache)
 		const want = http.StatusBadRequest
 		msg := getSecretFailedMsg{statusCode: want}
 
 		model, _ := sut.Update(msg)
 
-		m, _ := model.(secretModel)
-		got := m.failtureStatusCode
-		assert.Equal(t, want, got)
+		got, _ := model.(secretModel)
+		gotStatusCode := got.failtureStatusCode
+		assert.Equal(t, want, gotStatusCode)
+		assert.True(t, got.isOffline)
+		assert.False(t, got.keys.Save.Enabled())
+	})
+	t.Run("view cached secret when failed to get secret", func(t *testing.T) {
+		cache := cache.New()
+		secret := &vault.Secret{ID: "1", Data: "123"}
+		cache.CacheSecret(secret)
+		sut := NewSecretModel(address, jwtCookie, cache)
+		const want = http.StatusBadRequest
+		msg := getSecretFailedMsg{
+			statusCode: want,
+			secretID:   secret.ID,
+		}
+
+		model, _ := sut.Update(msg)
+
+		got, _ := model.(secretModel)
+		assert.Equal(t, secret.Data, got.textarea.Value())
 	})
 	t.Run("return to list of secrets on esc", func(t *testing.T) {
-		sut := NewSecretModel(address, jwtCookie)
+		cache := cache.New()
+		sut := NewSecretModel(address, jwtCookie, cache)
 		msg := tea.KeyMsg{Type: tea.KeyEsc}
 
 		model, cmd := sut.Update(msg)
@@ -85,9 +114,10 @@ func TestSecretModel_Update(t *testing.T) {
 		assertEqualCmd(t, listSecretsCommand.Execute, cmd)
 	})
 	t.Run("create new secret requested", func(t *testing.T) {
-		want := httpVault.Secret{}
+		want := vault.Secret{}
 		msg := createSecretRequestedMsg{}
-		sut := tea.Model(NewSecretModel(address, jwtCookie))
+		cache := cache.New()
+		sut := NewSecretModel(address, jwtCookie, cache)
 
 		model, cmd := sut.Update(msg)
 
@@ -98,8 +128,9 @@ func TestSecretModel_Update(t *testing.T) {
 		assert.Nil(t, cmd)
 	})
 	t.Run("save secret by ctrl+s", func(t *testing.T) {
-		sut := NewSecretModel(address, jwtCookie)
-		secret := httpVault.Secret{}
+		cache := cache.New()
+		sut := NewSecretModel(address, jwtCookie, cache)
+		secret := vault.Secret{}
 		sut.secret = secret
 		sut.textarea.SetValue("data")
 		msg := tea.KeyMsg{Type: tea.KeyCtrlS}
@@ -112,9 +143,10 @@ func TestSecretModel_Update(t *testing.T) {
 		assertEqualCmd(t, saveSecretCommand.execute, cmd)
 	})
 	t.Run("save secret completed", func(t *testing.T) {
-		want := httpVault.Secret{ID: "1", Data: "data"}
+		want := vault.Secret{ID: "1", Data: "data"}
 		msg := saveSecretCompletedMsg{want}
-		sut := NewSecretModel(address, jwtCookie)
+		cache := cache.New()
+		sut := NewSecretModel(address, jwtCookie, cache)
 		sut.isNew = true
 
 		model, cmd := sut.Update(msg)
@@ -125,9 +157,13 @@ func TestSecretModel_Update(t *testing.T) {
 		assert.Equal(t, want, got.secret)
 		assert.Equal(t, want.Data, got.textarea.Value())
 		assert.False(t, got.isNew)
+		cachedSecret, ok := cache.GetSecret(want.ID)
+		assert.True(t, ok)
+		assert.Equal(t, want, *cachedSecret)
 	})
 	t.Run("window size changed", func(t *testing.T) {
-		sut := NewSecretModel(address, jwtCookie)
+		cache := cache.New()
+		sut := NewSecretModel(address, jwtCookie, cache)
 		msg := tea.WindowSizeMsg{Width: 100}
 		require.NotEqual(t, msg.Width, sut.help.Width)
 
