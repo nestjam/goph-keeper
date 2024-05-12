@@ -56,12 +56,12 @@ func TestSecretsModel_Update(t *testing.T) {
 		cache := cache.New()
 		sut := tea.Model(NewSecretsModel(address, jwtCookie, cache))
 		wantSecrets := []*vault.Secret{
-			{ID: "2"},
-			{ID: "3"},
+			{ID: "2", Name: "secret2"},
+			{ID: "3", Name: "secret3"},
 		}
 		wantRows := []table.Row{
-			{"1", "2"},
-			{"2", "3"},
+			{"1", "2", "secret2"},
+			{"2", "3", "secret3"},
 		}
 		msg := listSecretsCompletedMsg{
 			secrets: wantSecrets,
@@ -118,10 +118,10 @@ func TestSecretsModel_Update(t *testing.T) {
 	})
 	t.Run("failed to list secrets", func(t *testing.T) {
 		wantRows := []table.Row{
-			{"1", "2"},
+			{"1", "2", ""},
 		}
 		secrets := []*vault.Secret{
-			{ID: "2"},
+			{ID: "2", Name: ""},
 		}
 		cache := cache.New()
 		cache.CacheSecrets(secrets)

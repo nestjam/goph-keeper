@@ -57,12 +57,14 @@ type SecretsModel struct {
 func NewSecretsModel(address string, jwtCookie *http.Cookie, cache *cache.SecretsCache) SecretsModel {
 	const (
 		numWidth    = 4
-		idWidth     = 60
+		idWidth     = 30
+		nameWidth   = 50
 		tableHeight = 10
 	)
 	columns := []table.Column{
 		{Title: "#", Width: numWidth},
 		{Title: "ID", Width: idWidth},
+		{Title: "Name", Width: nameWidth},
 	}
 
 	t := table.New(
@@ -203,7 +205,7 @@ func newRows(secrets []*vault.Secret) []table.Row {
 
 	for i := 0; i < len(secrets); i++ {
 		secret := secrets[i]
-		rows[i] = table.Row{strconv.Itoa(i + 1), secret.ID}
+		rows[i] = table.Row{strconv.Itoa(i + 1), secret.ID, secret.Name}
 	}
 
 	return rows
