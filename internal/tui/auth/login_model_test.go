@@ -13,8 +13,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestNewLoginModel(t *testing.T) {
+	t.Run("server address is set", func(t *testing.T) {
+		const address = "localhost:8080"
+		sut := NewLoginModel(address)
+
+		assert.Equal(t, address, sut.address)
+		assert.Equal(t, enterEmail, sut.textinput.Placeholder)
+	})
+	t.Run("server address is empty", func(t *testing.T) {
+		sut := NewLoginModel("")
+
+		assert.Equal(t, "", sut.address)
+		assert.Equal(t, enterServerAddress, sut.textinput.Placeholder)
+	})
+}
+
 func TestLoginModel_Init(t *testing.T) {
-	sut := NewLoginModel()
+	const address = "localhost:8080"
+	sut := NewLoginModel(address)
 
 	got := sut.Init()
 
@@ -22,19 +39,10 @@ func TestLoginModel_Init(t *testing.T) {
 }
 
 func TestLoginModel_Update(t *testing.T) {
-	t.Run("user typed server address", func(t *testing.T) {
-		sut := NewLoginModel()
-		const input = "http://localhost:8080"
-		msg := tea.KeyMsg{Runes: []rune(input)}
+	const address = "localhost:8080"
 
-		model, _ := sut.Update(msg)
-
-		got, ok := model.(loginModel)
-		assert.True(t, ok)
-		assert.Equal(t, input, got.textinput.Value())
-	})
 	t.Run("user exited by ctrl+c", func(t *testing.T) {
-		sut := NewLoginModel()
+		sut := NewLoginModel(address)
 		msg := tea.KeyMsg{Type: tea.KeyCtrlC}
 
 		_, cmd := sut.Update(msg)
@@ -42,7 +50,7 @@ func TestLoginModel_Update(t *testing.T) {
 		assertEqualCmd(t, tea.Quit, cmd)
 	})
 	t.Run("user exited by esc", func(t *testing.T) {
-		sut := NewLoginModel()
+		sut := NewLoginModel(address)
 		msg := tea.KeyMsg{Type: tea.KeyEsc}
 
 		_, cmd := sut.Update(msg)
@@ -50,7 +58,7 @@ func TestLoginModel_Update(t *testing.T) {
 		assertEqualCmd(t, tea.Quit, cmd)
 	})
 	t.Run("user entered server address", func(t *testing.T) {
-		sut := tea.Model(NewLoginModel())
+		sut := tea.Model(NewLoginModel(""))
 
 		const input = "http://localhost:8080"
 		msg := tea.KeyMsg{Runes: []rune(input)}
@@ -66,7 +74,7 @@ func TestLoginModel_Update(t *testing.T) {
 		assert.Nil(t, cmd)
 	})
 	t.Run("user pressed enter with empty input", func(t *testing.T) {
-		sut := NewLoginModel()
+		sut := NewLoginModel("")
 		msg := tea.KeyMsg{Type: tea.KeyEnter}
 
 		model, cmd := sut.Update(msg)
@@ -77,8 +85,7 @@ func TestLoginModel_Update(t *testing.T) {
 		assert.Nil(t, cmd)
 	})
 	t.Run("user entered email", func(t *testing.T) {
-		m := NewLoginModel()
-		m.address = "localhost:8080"
+		m := NewLoginModel(address)
 		sut := tea.Model(m)
 
 		const input = "user@email.com"
@@ -95,8 +102,7 @@ func TestLoginModel_Update(t *testing.T) {
 		assert.Nil(t, cmd)
 	})
 	t.Run("user entered password", func(t *testing.T) {
-		m := NewLoginModel()
-		m.address = "localhost:8080"
+		m := NewLoginModel(address)
 		m.email = "user@mail.com"
 		sut := tea.Model(m)
 
@@ -113,7 +119,7 @@ func TestLoginModel_Update(t *testing.T) {
 		assertEqualCmd(t, loginCmd.execute, cmd)
 	})
 	t.Run("login completed", func(t *testing.T) {
-		m := NewLoginModel()
+		m := NewLoginModel(address)
 		sut := tea.Model(m)
 		msg := loginCompletedMsg{}
 
@@ -125,7 +131,7 @@ func TestLoginModel_Update(t *testing.T) {
 		assertEqualCmd(t, listCommand.Execute, cmd)
 	})
 	t.Run("register completed", func(t *testing.T) {
-		m := NewLoginModel()
+		m := NewLoginModel(address)
 		sut := tea.Model(m)
 		msg := registerCompletedMsg{}
 
@@ -137,7 +143,7 @@ func TestLoginModel_Update(t *testing.T) {
 		assertEqualCmd(t, listCommand.Execute, cmd)
 	})
 	t.Run("error on login", func(t *testing.T) {
-		sut := NewLoginModel()
+		sut := NewLoginModel(address)
 		msg := errMsg{errors.New("error")}
 
 		model, _ := sut.Update(msg)
@@ -146,7 +152,7 @@ func TestLoginModel_Update(t *testing.T) {
 		assert.Equal(t, msg.err, got.err)
 	})
 	t.Run("failed to login", func(t *testing.T) {
-		m := NewLoginModel()
+		m := NewLoginModel(address)
 		m.address = "localhost:8080"
 		m.email = "user@mail.com"
 		m.password = "1234"
@@ -160,7 +166,7 @@ func TestLoginModel_Update(t *testing.T) {
 		assert.Empty(t, got.password)
 	})
 	t.Run("failed to register", func(t *testing.T) {
-		m := NewLoginModel()
+		m := NewLoginModel(address)
 		m.address = "localhost:8080"
 		m.email = "user@mail.com"
 		m.password = "1234"
@@ -176,7 +182,7 @@ func TestLoginModel_Update(t *testing.T) {
 	t.Run("key down pressed from login choice", func(t *testing.T) {
 		msg := tea.KeyMsg{Type: tea.KeyDown}
 		const want = 1
-		sut := NewLoginModel()
+		sut := NewLoginModel(address)
 
 		model, cmd := sut.Update(msg)
 
@@ -189,7 +195,7 @@ func TestLoginModel_Update(t *testing.T) {
 	t.Run("key up pressed from login choice", func(t *testing.T) {
 		msg := tea.KeyMsg{Type: tea.KeyUp}
 		const want = 1
-		sut := NewLoginModel()
+		sut := NewLoginModel(address)
 
 		model, cmd := sut.Update(msg)
 
@@ -202,7 +208,7 @@ func TestLoginModel_Update(t *testing.T) {
 	t.Run("key down pressed from register choice", func(t *testing.T) {
 		msg := tea.KeyMsg{Type: tea.KeyDown}
 		const want = 0
-		sut := NewLoginModel()
+		sut := NewLoginModel(address)
 		sut.cursor = 1
 
 		model, cmd := sut.Update(msg)
@@ -216,7 +222,7 @@ func TestLoginModel_Update(t *testing.T) {
 	t.Run("key up pressed from register choice", func(t *testing.T) {
 		msg := tea.KeyMsg{Type: tea.KeyUp}
 		const want = 0
-		sut := NewLoginModel()
+		sut := NewLoginModel(address)
 		sut.cursor = 1
 
 		model, cmd := sut.Update(msg)
@@ -228,7 +234,7 @@ func TestLoginModel_Update(t *testing.T) {
 		assert.Nil(t, cmd)
 	})
 	t.Run("user pressed enter to register", func(t *testing.T) {
-		m := NewLoginModel()
+		m := NewLoginModel(address)
 		m.address = "localhost:8080"
 		m.email = "user@mail.com"
 		m.password = "1234"
@@ -244,7 +250,7 @@ func TestLoginModel_Update(t *testing.T) {
 		assertEqualCmd(t, registerCmd.execute, cmd)
 	})
 	t.Run("window size changed", func(t *testing.T) {
-		sut := NewLoginModel()
+		sut := NewLoginModel(address)
 		msg := tea.WindowSizeMsg{Width: 100}
 		require.NotEqual(t, msg.Width, sut.help.Width)
 

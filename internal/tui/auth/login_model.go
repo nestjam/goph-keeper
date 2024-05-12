@@ -14,6 +14,11 @@ import (
 	"github.com/nestjam/goph-keeper/internal/tui/vault/cache"
 )
 
+const (
+	enterEmail         = "Enter email"
+	enterServerAddress = "Enter server address"
+)
+
 var choices = []string{"login", "regiser"}
 
 type loginKeyMap struct {
@@ -44,9 +49,12 @@ type loginModel struct {
 	cursor       int
 }
 
-func NewLoginModel() loginModel {
+func NewLoginModel(address string) loginModel {
 	ti := textinput.New()
-	ti.Placeholder = "Enter server address"
+	ti.Placeholder = enterServerAddress
+	if address != "" {
+		ti.Placeholder = enterEmail
+	}
 	ti.Focus()
 
 	keys := loginKeyMap{
@@ -69,6 +77,7 @@ func NewLoginModel() loginModel {
 	}
 
 	return loginModel{
+		address:   address,
 		keys:      keys,
 		help:      help.New(),
 		textinput: ti,
@@ -243,5 +252,5 @@ func acceptEmail(m *loginModel, input string) {
 func acceptServerAddress(m *loginModel, input string) {
 	m.address = input
 	m.textinput.SetValue("")
-	m.textinput.Placeholder = "Enter email"
+	m.textinput.Placeholder = enterEmail
 }

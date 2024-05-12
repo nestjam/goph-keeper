@@ -2,10 +2,9 @@ package main
 
 import (
 	"log"
+	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
-
-	"github.com/nestjam/goph-keeper/internal/tui/auth"
+	"github.com/nestjam/goph-keeper/internal/app/client"
 )
 
 var (
@@ -14,12 +13,7 @@ var (
 )
 
 func main() {
-	m := auth.NewLoginModel()
-	m.BuildDate = BuildDate
-	m.BuildVersion = BuildVersion
-
-	p := tea.NewProgram(m, tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
-		log.Fatalln(err)
+	if err := client.NewApp().Run(BuildVersion, BuildDate, os.Args); err != nil {
+		log.Fatal(err)
 	}
 }
