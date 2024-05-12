@@ -92,12 +92,13 @@ func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = msg.err
 			m.failtureStatusCode = msg.statusCode
 			m.setOfflineMode(true)
-			m.textarea.Blur()
 
 			if secret, ok := m.cache.GetSecret(msg.secretID); ok {
 				m.secret = *secret
-				m.textarea.SetValue(m.secret.Data)
 			}
+
+			m.textarea.Blur()
+			m.textarea.SetValue(m.secret.Data)
 		}
 	case createSecretRequestedMsg:
 		{

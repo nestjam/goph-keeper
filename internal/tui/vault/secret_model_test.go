@@ -96,6 +96,18 @@ func TestSecretModel_Update(t *testing.T) {
 		assert.True(t, got.isOffline)
 		assert.False(t, got.keys.Save.Enabled())
 	})
+	t.Run("clear text if failed to get secret and secret is not cached", func(t *testing.T) {
+		cache := cache.New()
+		sut := NewSecretModel(address, jwtCookie, cache)
+		sut.textarea.SetValue("text")
+		const want = http.StatusBadRequest
+		msg := getSecretFailedMsg{statusCode: want}
+
+		model, _ := sut.Update(msg)
+
+		got, _ := model.(secretModel)
+		assert.Empty(t, got.textarea.Value())
+	})
 	t.Run("error", func(t *testing.T) {
 		cache := cache.New()
 		sut := NewSecretModel(address, jwtCookie, cache)
