@@ -32,6 +32,17 @@ func TestSecretModel_Update(t *testing.T) {
 		jwtCookie = &http.Cookie{}
 	)
 
+	t.Run("user enter text", func(t *testing.T) {
+		cache := cache.New()
+		sut := NewSecretModel(address, jwtCookie, cache)
+		msg := tea.KeyMsg{Type: tea.KeySpace, Runes: []rune("text")}
+
+		model, cmd := sut.Update(msg)
+
+		_, ok := model.(secretModel)
+		assert.True(t, ok)
+		assert.NotNil(t, cmd)
+	})
 	t.Run("user exited by ctrl+c", func(t *testing.T) {
 		cache := cache.New()
 		sut := NewSecretModel(address, jwtCookie, cache)
@@ -82,6 +93,18 @@ func TestSecretModel_Update(t *testing.T) {
 		got, _ := model.(secretModel)
 		gotStatusCode := got.failtureStatusCode
 		assert.Equal(t, want, gotStatusCode)
+		assert.True(t, got.isOffline)
+		assert.False(t, got.keys.Save.Enabled())
+	})
+	t.Run("error", func(t *testing.T) {
+		cache := cache.New()
+		sut := NewSecretModel(address, jwtCookie, cache)
+		msg := errMsg{err: errors.New("error")}
+
+		model, _ := sut.Update(msg)
+
+		got, _ := model.(secretModel)
+		assert.Equal(t, msg.err, got.err)
 		assert.True(t, got.isOffline)
 		assert.False(t, got.keys.Save.Enabled())
 	})

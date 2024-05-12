@@ -168,11 +168,9 @@ func (m secretModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		cmd := saveSecret(secret, m.address, m.jwtCookie)
 		return m, cmd
 	default:
-		{
-			var cmd tea.Cmd
-			m.textarea, cmd = m.textarea.Update(msg)
-			return m, cmd
-		}
+		var cmd tea.Cmd
+		m.textarea, cmd = m.textarea.Update(msg)
+		return m, cmd
 	}
 }
 
