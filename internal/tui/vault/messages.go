@@ -9,6 +9,7 @@ type listSecretsCompletedMsg struct {
 }
 
 type listSecretsFailedMsg struct {
+	err        error
 	statusCode int
 }
 
@@ -21,6 +22,7 @@ type getSecretCompletedMsg struct {
 }
 
 type getSecretFailedMsg struct {
+	err        error
 	secretID   string
 	statusCode int
 }

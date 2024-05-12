@@ -47,9 +47,12 @@ func TestListSecretsCommand(t *testing.T) {
 			address: string([]byte{0x7f}), // ASCII control character
 		}
 
-		got := sut.Execute()
+		msg := sut.Execute()
 
-		assert.IsType(t, errMsg{}, got)
+		got, ok := msg.(listSecretsFailedMsg)
+		assert.True(t, ok)
+		assert.NotNil(t, got.err)
+		assert.Equal(t, zeroStatusCode, got.statusCode)
 	})
 	t.Run("failed to connect server", func(t *testing.T) {
 		server := httptest.NewServer(nil)
@@ -57,9 +60,12 @@ func TestListSecretsCommand(t *testing.T) {
 		server.Close()
 		sut := NewListSecretsCommand(serverURL, &http.Cookie{})
 
-		got := sut.Execute()
+		msg := sut.Execute()
 
-		assert.IsType(t, errMsg{}, got)
+		got, ok := msg.(listSecretsFailedMsg)
+		assert.True(t, ok)
+		assert.NotNil(t, got.err)
+		assert.Equal(t, zeroStatusCode, got.statusCode)
 	})
 	t.Run("request is not successful", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -33,12 +33,18 @@ func (c getSecretCommand) execute() tea.Msg {
 
 	url, err := url.JoinPath(c.address, baseURL, c.secretID)
 	if err != nil {
-		return errMsg{err}
+		return getSecretFailedMsg{
+			err:      err,
+			secretID: c.secretID,
+		}
 	}
 	var res httpVault.GetSecretResponse
 	resp, err := client.R().SetResult(&res).SetCookie(c.jwtCookie).Get(url)
 	if err != nil {
-		return errMsg{err}
+		return getSecretFailedMsg{
+			err:      err,
+			secretID: c.secretID,
+		}
 	}
 
 	if resp.IsSuccess() {

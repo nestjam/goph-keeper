@@ -31,7 +31,7 @@ func (c listSecretsCommand) Execute() tea.Msg {
 
 	url, err := url.JoinPath(c.address, baseURL)
 	if err != nil {
-		return errMsg{err}
+		return listSecretsFailedMsg{err: err}
 	}
 
 	var res struct {
@@ -39,12 +39,12 @@ func (c listSecretsCommand) Execute() tea.Msg {
 	}
 	resp, err := client.R().SetResult(&res).SetCookie(c.jwtCookie).Get(url)
 	if err != nil {
-		return errMsg{err}
+		return listSecretsFailedMsg{err: err}
 	}
 
 	if resp.IsSuccess() {
 		return listSecretsCompletedMsg{res.List}
 	}
 
-	return listSecretsFailedMsg{resp.StatusCode()}
+	return listSecretsFailedMsg{statusCode: resp.StatusCode()}
 }

@@ -21,6 +21,9 @@ func TestCacheSecrets(t *testing.T) {
 		got := sut.ListSecrets()
 		assert.ElementsMatch(t, want, got)
 
+		want = []*vault.Secret{
+			{ID: "1"},
+		}
 		sut.CacheSecrets(want)
 
 		got = sut.ListSecrets()
@@ -67,5 +70,30 @@ func TestCacheSecret(t *testing.T) {
 		got, ok := sut.GetSecret(want.ID)
 		assert.True(t, ok)
 		assert.Equal(t, want, got)
+	})
+}
+
+func TestRemoveSecret(t *testing.T) {
+	t.Run("remove secret", func(t *testing.T) {
+		sut := New()
+		secret := &vault.Secret{
+			ID:   "1",
+			Data: "secret",
+		}
+		sut.CacheSecret(secret)
+
+		sut.RemoveSecret(secret.ID)
+
+		assert.Empty(t, sut.ListSecrets())
+	})
+	t.Run("remove secret that is not cached", func(t *testing.T) {
+		sut := New()
+		secret := &vault.Secret{
+			ID: "1",
+		}
+
+		sut.RemoveSecret(secret.ID)
+
+		assert.Empty(t, sut.ListSecrets())
 	})
 }

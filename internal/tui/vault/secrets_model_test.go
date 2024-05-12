@@ -102,21 +102,29 @@ func TestSecretsModel_Update(t *testing.T) {
 		assert.Equal(t, wantID, getSecretCommand.secretID)
 		assertEqualCmd(t, getSecretCommand.execute, cmd)
 	})
-	t.Run("error on get secret", func(t *testing.T) {
+	t.Run("error on get secrets", func(t *testing.T) {
 		cache := cache.New()
 		sut := NewSecretsModel(address, jwtCookie, cache)
-		msg := errMsg{errors.New("error")}
+		msg := listSecretsFailedMsg{err: errors.New("error")}
 
 		model, _ := sut.Update(msg)
 
 		got, _ := model.(SecretsModel)
 		assert.Equal(t, msg.err, got.err)
+		assert.Equal(t, zeroStatusCode, got.failtureStatusCode)
 		assert.True(t, got.isOffline)
 		assert.False(t, got.keys.Add.Enabled())
 		assert.False(t, got.keys.Delete.Enabled())
 	})
 	t.Run("failed to list secrets", func(t *testing.T) {
+		wantRows := []table.Row{
+			{"1", "2"},
+		}
+		secrets := []*vault.Secret{
+			{ID: "2"},
+		}
 		cache := cache.New()
+		cache.CacheSecrets(secrets)
 		sut := NewSecretsModel(address, jwtCookie, cache)
 		const wantStatusCode = http.StatusBadRequest
 		msg := listSecretsFailedMsg{statusCode: wantStatusCode}
@@ -124,10 +132,12 @@ func TestSecretsModel_Update(t *testing.T) {
 		model, _ := sut.Update(msg)
 
 		got, _ := model.(SecretsModel)
+		assert.Nil(t, got.err)
 		assert.Equal(t, wantStatusCode, got.failtureStatusCode)
 		assert.True(t, got.isOffline)
 		assert.False(t, got.keys.Add.Enabled())
 		assert.False(t, got.keys.Delete.Enabled())
+		assert.ElementsMatch(t, wantRows, got.table.Rows())
 	})
 	t.Run("success retry after failed to list secrets", func(t *testing.T) {
 		cache := cache.New()
@@ -175,8 +185,8 @@ func TestSecretsModel_Update(t *testing.T) {
 			{ID: secretID},
 		}
 		cache := cache.New()
-		sut := NewSecretsModel(address, jwtCookie, cache)
 		cache.CacheSecrets(secrets)
+		sut := NewSecretsModel(address, jwtCookie, cache)
 		rows := []table.Row{
 			{"1", secretID},
 		}
@@ -189,6 +199,8 @@ func TestSecretsModel_Update(t *testing.T) {
 		m, ok := model.(SecretsModel)
 		assert.True(t, ok)
 		assert.Empty(t, len(m.table.Rows()))
+		cachedSecrets := cache.ListSecrets()
+		assert.Empty(t, cachedSecrets)
 	})
 	t.Run("add new secret by ctrl+n", func(t *testing.T) {
 		cache := cache.New()

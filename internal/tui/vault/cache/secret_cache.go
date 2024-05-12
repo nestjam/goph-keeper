@@ -15,12 +15,18 @@ func New() *SecretsCache {
 }
 
 func (c *SecretsCache) CacheSecrets(secrets []*vault.Secret) {
+	newCache := make(map[string]*vault.Secret, len(c.secrets))
+
 	for i := 0; i < len(secrets); i++ {
 		secret := secrets[i]
-		if _, ok := c.secrets[secret.ID]; !ok {
-			c.secrets[secret.ID] = secret
+		if cached, ok := c.secrets[secret.ID]; ok {
+			newCache[secret.ID] = cached
+			continue
 		}
+		newCache[secret.ID] = secret
 	}
+
+	c.secrets = newCache
 }
 
 func (c *SecretsCache) ListSecrets() []*vault.Secret {
@@ -44,6 +50,6 @@ func (c *SecretsCache) GetSecret(id string) (*vault.Secret, bool) {
 	return secret, ok
 }
 
-func (c *SecretsCache) RemoveSecret(id string) error {
-	panic("unimplemented")
+func (c *SecretsCache) RemoveSecret(id string) {
+	delete(c.secrets, id)
 }

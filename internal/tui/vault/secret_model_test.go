@@ -62,7 +62,7 @@ func TestSecretModel_Update(t *testing.T) {
 	t.Run("error on get secret", func(t *testing.T) {
 		cache := cache.New()
 		sut := NewSecretModel(address, jwtCookie, cache)
-		msg := errMsg{errors.New("error")}
+		msg := getSecretFailedMsg{err: errors.New("error")}
 
 		model, _ := sut.Update(msg)
 
@@ -100,6 +100,7 @@ func TestSecretModel_Update(t *testing.T) {
 
 		got, _ := model.(secretModel)
 		assert.Equal(t, secret.Data, got.textarea.Value())
+		assert.Equal(t, *secret, got.secret)
 	})
 	t.Run("return to list of secrets on esc", func(t *testing.T) {
 		cache := cache.New()

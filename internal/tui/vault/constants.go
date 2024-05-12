@@ -5,4 +5,5 @@ const (
 	errTemplate  = "error: %s\n\n"
 	codeTemplate = "code: %d\n\n"
 	quitApp      = "quit"
+	offlineMode  = "offline mode"
 )

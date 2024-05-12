@@ -46,9 +46,12 @@ func TestGetSecretCommand(t *testing.T) {
 			address: string([]byte{0x7f}), // ASCII control character
 		}
 
-		got := sut.execute()
+		msg := sut.execute()
 
-		assert.IsType(t, errMsg{}, got)
+		got, ok := msg.(getSecretFailedMsg)
+		assert.True(t, ok)
+		assert.NotNil(t, got.err)
+		assert.Equal(t, zeroStatusCode, got.statusCode)
 	})
 	t.Run("failed to connect server", func(t *testing.T) {
 		const secretID = "1"
@@ -57,9 +60,13 @@ func TestGetSecretCommand(t *testing.T) {
 		server.Close()
 		sut := newGetSecretCommand(secretID, serverURL, &http.Cookie{})
 
-		got := sut.execute()
+		msg := sut.execute()
 
-		assert.IsType(t, errMsg{}, got)
+		got, ok := msg.(getSecretFailedMsg)
+		assert.True(t, ok)
+		assert.NotNil(t, got.err)
+		assert.Equal(t, zeroStatusCode, got.statusCode)
+		assert.Equal(t, secretID, got.secretID)
 	})
 	t.Run("get secret failed", func(t *testing.T) {
 		const secretID = "1"

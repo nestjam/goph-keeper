@@ -134,7 +134,6 @@ func (m SecretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		{
 			secrets := msg.secrets
 			m.cache.CacheSecrets(secrets)
-
 			rows := newRows(secrets)
 			m.table.SetRows(rows)
 
@@ -143,14 +142,20 @@ func (m SecretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case listSecretsFailedMsg:
 		{
+			m.err = msg.err
 			m.failtureStatusCode = msg.statusCode
 			m.setOfflineMode(true)
+
+			secrets := m.cache.ListSecrets()
+			rows := newRows(secrets)
+			m.table.SetRows(rows)
 		}
 	case deleteSecretCompletedMsg:
 		{
 			rows := m.table.Rows()
-			rows = deleteRow(msg.secretID, rows)
+			rows = deleteRow(rows, msg.secretID)
 			m.table.SetRows(rows)
+			m.cache.RemoveSecret(msg.secretID)
 		}
 	case errMsg:
 		{
@@ -168,7 +173,7 @@ func (m SecretsModel) View() string {
 	s := strings.Builder{}
 
 	if m.isOffline {
-		s.WriteString("offline mode")
+		s.WriteString(offlineMode)
 		s.WriteString("\n")
 	}
 
@@ -256,7 +261,7 @@ func createSecret() tea.Cmd {
 	return cmd.execute
 }
 
-func deleteRow(id string, rows []table.Row) []table.Row {
+func deleteRow(rows []table.Row, id string) []table.Row {
 	i := findIndex(id, rows)
 	if i < 0 {
 		return rows
