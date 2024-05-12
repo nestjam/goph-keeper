@@ -188,6 +188,7 @@ func newGetSecretResponse(secret *model.Secret) GetSecretResponse {
 	return GetSecretResponse{
 		Secret: Secret{
 			ID:   secret.ID.String(),
+			Name: secret.Name,
 			Data: string(secret.Data),
 		},
 	}
@@ -204,6 +205,7 @@ func secretFromAddRequest(r *http.Request) (*model.Secret, error) {
 	}
 
 	secret := &model.Secret{
+		Name: req.Secret.Name,
 		Data: []byte(req.Secret.Data),
 	}
 	return secret, nil
@@ -220,6 +222,7 @@ func secretFromUpdateRequest(r *http.Request) (*model.Secret, error) {
 	}
 
 	secret := &model.Secret{
+		Name: req.Secret.Name,
 		Data: []byte(req.Secret.Data),
 	}
 	return secret, nil
@@ -258,7 +261,10 @@ func newListSecretsResponse(secrets []*model.Secret) *ListSecretsResponse {
 
 	for i := 0; i < len(secrets); i++ {
 		s := secrets[i]
-		resp.List[i] = Secret{ID: s.ID.String()}
+		resp.List[i] = Secret{
+			ID:   s.ID.String(),
+			Name: s.Name,
+		}
 	}
 
 	return resp

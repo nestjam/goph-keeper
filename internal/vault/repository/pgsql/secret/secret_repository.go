@@ -55,7 +55,7 @@ func (r *secretRepository) ListSecrets(ctx context.Context, userID uuid.UUID) ([
 	}
 	defer conn.Release()
 
-	const sql = "SELECT secret_id FROM secrets WHERE user_id=$1"
+	const sql = "SELECT secret_id, name FROM secrets WHERE user_id=$1"
 	rows, err := conn.Query(ctx, sql, userID)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
@@ -65,7 +65,7 @@ func (r *secretRepository) ListSecrets(ctx context.Context, userID uuid.UUID) ([
 	var secrets []*model.Secret
 	for rows.Next() {
 		secret := &model.Secret{}
-		err := rows.Scan(&secret.ID)
+		err := rows.Scan(&secret.ID, &secret.Name)
 		if err != nil {
 			return nil, errors.Wrap(err, op)
 		}
@@ -95,8 +95,8 @@ func (r *secretRepository) AddSecret(ctx context.Context, secret *model.Secret, 
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	const sql = `INSERT INTO secrets (user_id, key_id, data) VALUES ($1, $2, $3) RETURNING secret_id;`
-	row := tx.QueryRow(ctx, sql, userID, secret.KeyID, secret.Data)
+	const sql = `INSERT INTO secrets (user_id, key_id, name, data) VALUES ($1, $2, $3, $4) RETURNING secret_id;`
+	row := tx.QueryRow(ctx, sql, userID, secret.KeyID, secret.Name, secret.Data)
 	var id uuid.UUID
 	err = row.Scan(&id)
 	if err != nil {
@@ -127,8 +127,8 @@ func (r *secretRepository) UpdateSecret(ctx context.Context, secret *model.Secre
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	const sql = `UPDATE secrets SET data=$1 WHERE secret_id=$2;`
-	tag, err := tx.Exec(ctx, sql, secret.Data, secret.ID)
+	const sql = `UPDATE secrets SET name=$1, data=$2 WHERE secret_id=$3;`
+	tag, err := tx.Exec(ctx, sql, secret.Name, secret.Data, secret.ID)
 	if tag.RowsAffected() == 0 {
 		return vault.ErrSecretNotFound
 	}
@@ -154,9 +154,9 @@ func (r *secretRepository) GetSecret(ctx context.Context, secretID, userID uuid.
 	defer conn.Release()
 
 	secret := &model.Secret{ID: secretID}
-	const sql = `SELECT key_id, data FROM secrets WHERE secret_id=$1 AND user_id=$2`
+	const sql = `SELECT key_id, name, data FROM secrets WHERE secret_id=$1 AND user_id=$2`
 	row := conn.QueryRow(ctx, sql, secretID, userID)
-	err = row.Scan(&secret.KeyID, &secret.Data)
+	err = row.Scan(&secret.KeyID, &secret.Name, &secret.Data)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, vault.ErrSecretNotFound
 	}

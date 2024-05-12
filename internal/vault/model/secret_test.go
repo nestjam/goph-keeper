@@ -10,6 +10,7 @@ import (
 func TestCopy(t *testing.T) {
 	sut := &Secret{
 		ID:    uuid.New(),
+		Name:  "secret",
 		Data:  []byte("data"),
 		KeyID: uuid.New(),
 	}

@@ -25,7 +25,7 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		sut, tearDown, td := c.NewSecretRepository()
 		t.Cleanup(tearDown)
 		secret := &model.Secret{
-			Data:  []byte("data"),
+			Data:  []byte("123"),
 			KeyID: td.Keys[0],
 		}
 		userID := td.Users[0]
@@ -47,13 +47,13 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 		secret.ID, err = sut.AddSecret(ctx, secret, userID)
 		require.NoError(t, err)
 		secret.Data = []byte("edited text")
+		secret.Name = "secret"
 
 		err = sut.UpdateSecret(ctx, secret, userID)
 
 		require.NoError(t, err)
 		got, _ := sut.GetSecret(ctx, secret.ID, userID)
-		assert.Equal(t, secret.ID, got.ID)
-		assert.Equal(t, secret.Data, got.Data)
+		assert.Equal(t, secret, got)
 	})
 	t.Run("update secret that does not exist", func(t *testing.T) {
 		sut, tearDown, _ := c.NewSecretRepository()
@@ -85,6 +85,7 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 			userID := td.Users[0]
 			ctx := context.Background()
 			secret := &model.Secret{
+				Name:  "secret",
 				Data:  []byte("data_"),
 				KeyID: td.Keys[0],
 			}
@@ -92,7 +93,10 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 			secret.ID, err = sut.AddSecret(ctx, secret, userID)
 			require.NoError(t, err)
 			want := []*model.Secret{
-				{ID: secret.ID},
+				{
+					ID:   secret.ID,
+					Name: secret.Name,
+				},
 			}
 
 			got, err := sut.ListSecrets(ctx, userID)
@@ -124,14 +128,18 @@ func (c SecretRepositoryContract) Test(t *testing.T) {
 			got, err := sut.ListSecrets(ctx, userID)
 
 			require.NoError(t, err)
-			assert.Equal(t, want, got)
+			assert.ElementsMatch(t, want, got)
 		})
 
 		t.Run("get secret", func(t *testing.T) {
 			t.Run("get user secret", func(t *testing.T) {
 				sut, tearDown, td := c.NewSecretRepository()
 				t.Cleanup(tearDown)
-				want := &model.Secret{KeyID: td.Keys[0]}
+				want := &model.Secret{
+					KeyID: td.Keys[0],
+					Data:  []byte("data"),
+					Name:  "secret",
+				}
 				userID := td.Users[0]
 				ctx := context.Background()
 				var err error

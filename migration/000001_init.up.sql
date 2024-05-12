@@ -18,6 +18,7 @@ CREATE TABLE secrets(
     secret_id       UUID PRIMARY KEY        DEFAULT gen_random_uuid(),
     user_id         UUID                    NOT NULL REFERENCES users (user_id),
     key_id          UUID                    NOT NULL REFERENCES keys (key_id),
+    name            TEXT,
     data            BYTEA
 );
 
