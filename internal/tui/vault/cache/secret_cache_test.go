@@ -67,8 +67,23 @@ func TestCacheSecret(t *testing.T) {
 
 		sut.CacheSecret(want)
 
-		got, ok := sut.GetSecret(want.ID)
+		got, _, ok := sut.GetSecret(want.ID)
 		assert.True(t, ok)
+		assert.Equal(t, want, got)
+	})
+}
+
+func TestGetSecret(t *testing.T) {
+	t.Run("cache list of secrets", func(t *testing.T) {
+		sut := New()
+		want := &vault.Secret{ID: "1"}
+		secrets := []*vault.Secret{want}
+		sut.CacheSecrets(secrets)
+
+		got, isDataCached, ok := sut.GetSecret(want.ID)
+
+		assert.True(t, ok)
+		assert.False(t, isDataCached)
 		assert.Equal(t, want, got)
 	})
 }

@@ -66,8 +66,9 @@ func TestSecretModel_Update(t *testing.T) {
 		gotSecret := got.secret
 		assert.Equal(t, wantSecret, gotSecret)
 		assert.Nil(t, cmd)
-		cachedSecret, ok := cache.GetSecret(wantSecret.ID)
+		cachedSecret, dataCached, ok := cache.GetSecret(wantSecret.ID)
 		require.True(t, ok)
+		require.True(t, dataCached)
 		assert.Equal(t, wantSecret, *cachedSecret)
 	})
 	t.Run("error on get secret", func(t *testing.T) {
@@ -83,10 +84,18 @@ func TestSecretModel_Update(t *testing.T) {
 		assert.False(t, got.keys.Save.Enabled())
 	})
 	t.Run("failed to get secret", func(t *testing.T) {
+		secret := &vault.Secret{
+			ID:   "1",
+			Data: "data",
+		}
 		cache := cache.New()
+		cache.CacheSecret(secret)
 		sut := NewSecretModel(address, jwtCookie, cache)
 		const want = http.StatusBadRequest
-		msg := getSecretFailedMsg{statusCode: want}
+		msg := getSecretFailedMsg{
+			statusCode: want,
+			secretID:   secret.ID,
+		}
 
 		model, _ := sut.Update(msg)
 
@@ -95,6 +104,29 @@ func TestSecretModel_Update(t *testing.T) {
 		assert.Equal(t, want, gotStatusCode)
 		assert.True(t, got.isOffline)
 		assert.False(t, got.keys.Save.Enabled())
+		assert.Equal(t, secret.Data, got.textarea.Value())
+		assert.True(t, got.dataCached)
+	})
+	t.Run("clear text if failed to get secret and secret data is not cached", func(t *testing.T) {
+		secrets := []*vault.Secret{
+			{ID: "1"},
+		}
+		cache := cache.New()
+		cache.CacheSecrets(secrets)
+		sut := NewSecretModel(address, jwtCookie, cache)
+		sut.textarea.SetValue("text")
+		const want = http.StatusBadRequest
+		msg := getSecretFailedMsg{
+			secretID:   secrets[0].ID,
+			statusCode: want,
+		}
+
+		model, _ := sut.Update(msg)
+
+		got, _ := model.(secretModel)
+		assert.Empty(t, got.textarea.Value())
+		assert.False(t, got.dataCached)
+		assert.Equal(t, noCachedData, got.textarea.Placeholder)
 	})
 	t.Run("clear text if failed to get secret and secret is not cached", func(t *testing.T) {
 		cache := cache.New()
@@ -107,6 +139,7 @@ func TestSecretModel_Update(t *testing.T) {
 
 		got, _ := model.(secretModel)
 		assert.Empty(t, got.textarea.Value())
+		assert.False(t, got.dataCached)
 	})
 	t.Run("error", func(t *testing.T) {
 		cache := cache.New()
@@ -193,7 +226,7 @@ func TestSecretModel_Update(t *testing.T) {
 		assert.Equal(t, want, got.secret)
 		assert.Equal(t, want.Data, got.textarea.Value())
 		assert.False(t, got.isNew)
-		cachedSecret, ok := cache.GetSecret(want.ID)
+		cachedSecret, _, ok := cache.GetSecret(want.ID)
 		assert.True(t, ok)
 		assert.Equal(t, want, *cachedSecret)
 	})

@@ -40,6 +40,7 @@ type secretModel struct {
 	failtureStatusCode int
 	isNew              bool
 	isOffline          bool
+	dataCached         bool
 }
 
 func NewSecretModel(address string, jwtCookie *http.Cookie, cache *cache.SecretsCache) secretModel {
@@ -93,12 +94,16 @@ func (m secretModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.failtureStatusCode = msg.statusCode
 			m.setOfflineMode(true)
 
-			if secret, ok := m.cache.GetSecret(msg.secretID); ok {
+			if secret, dataCached, ok := m.cache.GetSecret(msg.secretID); ok {
 				m.secret = *secret
+				m.dataCached = dataCached
+				if dataCached {
+					m.textarea.SetValue(secret.Data)
+				} else {
+					m.textarea.Placeholder = noCachedData
+				}
 			}
-
 			m.textarea.Blur()
-			m.textarea.SetValue(m.secret.Data)
 		}
 	case createSecretRequestedMsg:
 		{
@@ -141,9 +146,12 @@ func (m secretModel) View() string {
 		s.WriteString(fmt.Sprintf(codeTemplate, m.failtureStatusCode))
 	}
 
-	s.WriteString(fmt.Sprintf("id: %s\n\n", m.secret.ID))
+	s.WriteString(fmt.Sprintf("id: %s", m.secret.ID))
+	s.WriteString("\n\n")
+
 	s.WriteString(m.textarea.View())
 
+	// hot keys help
 	s.WriteString("\n\n")
 	s.WriteString(m.help.View(m.keys))
 

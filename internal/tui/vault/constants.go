@@ -6,4 +6,5 @@ const (
 	codeTemplate = "code: %d\n\n"
 	quitApp      = "quit"
 	offlineMode  = "offline mode"
+	noCachedData = "no cached data"
 )
