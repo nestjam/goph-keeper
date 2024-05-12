@@ -14,7 +14,7 @@ import (
 
 func TestListSecretsCommand(t *testing.T) {
 	t.Run("list user secrets", func(t *testing.T) {
-		wantSecrets := []vaultHttp.Secret{
+		wantSecrets := []*vaultHttp.Secret{
 			{ID: "1"},
 			{ID: "2"},
 		}
@@ -28,7 +28,7 @@ func TestListSecretsCommand(t *testing.T) {
 			gotURL = r.URL.String()
 			gotCookie = findCookie(r.Cookies(), "auth")
 			resp := vaultHttp.ListSecretsResponse{
-				List: wantSecrets,
+				List: []vaultHttp.Secret{*wantSecrets[0], *wantSecrets[1]},
 			}
 			_ = writeJSON(w, http.StatusOK, resp)
 		}))

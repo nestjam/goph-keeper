@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/nestjam/goph-keeper/internal/tui/vault"
+	"github.com/nestjam/goph-keeper/internal/tui/vault/cache"
 )
 
 var choices = []string{"login", "regiser"}
@@ -85,9 +86,11 @@ func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		return handleKeyMsg(msg, m)
 	case loginCompletedMsg:
-		return vault.NewSecretsModel(m.address, msg.jwtCookie), listSecrets(m.address, msg.jwtCookie)
+		cache := cache.New()
+		return vault.NewSecretsModel(m.address, msg.jwtCookie, cache), listSecrets(m.address, msg.jwtCookie)
 	case registerCompletedMsg:
-		return vault.NewSecretsModel(m.address, msg.jwtCookie), listSecrets(m.address, msg.jwtCookie)
+		cache := cache.New()
+		return vault.NewSecretsModel(m.address, msg.jwtCookie, cache), listSecrets(m.address, msg.jwtCookie)
 	case loginFailedMsg, registerFailedMsg:
 		{
 			m.password = ""

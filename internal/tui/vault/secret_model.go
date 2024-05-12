@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/nestjam/goph-keeper/internal/tui/vault/cache"
 	httpVault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
 )
 
@@ -31,6 +32,7 @@ type secretModel struct {
 	textarea           textarea.Model
 	err                error
 	jwtCookie          *http.Cookie
+	cache              *cache.SecretsCache
 	help               help.Model
 	secret             httpVault.Secret
 	address            string
@@ -116,7 +118,7 @@ func (m secretModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Quit):
 		return m, tea.Quit
 	case key.Matches(msg, m.keys.Return):
-		model := NewSecretsModel(m.address, m.jwtCookie)
+		model := NewSecretsModel(m.address, m.jwtCookie, m.cache)
 		cmd := listSecrets(m.address, m.jwtCookie)
 		return model, cmd
 	case key.Matches(msg, m.keys.Save):

@@ -33,7 +33,10 @@ func (c listSecretsCommand) Execute() tea.Msg {
 	if err != nil {
 		return errMsg{err}
 	}
-	var res httpVault.ListSecretsResponse
+
+	var res struct {
+		List []*httpVault.Secret `json:"list,omitempty"`
+	}
 	resp, err := client.R().SetResult(&res).SetCookie(c.jwtCookie).Get(url)
 	if err != nil {
 		return errMsg{err}

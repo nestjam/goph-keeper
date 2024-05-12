@@ -5,7 +5,7 @@ import (
 )
 
 type listSecretsCompletedMsg struct {
-	secrets []httpVault.Secret
+	secrets []*httpVault.Secret
 }
 
 type listSecretsFailedMsg struct {

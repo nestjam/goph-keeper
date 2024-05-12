@@ -119,8 +119,8 @@ func TestLoginModel_Update(t *testing.T) {
 
 		model, cmd := sut.Update(msg)
 
-		secretsModel := vault.NewSecretsModel("", nil)
-		assert.IsType(t, secretsModel, model)
+		_, ok := model.(vault.SecretsModel)
+		assert.True(t, ok)
 		listCommand := vault.NewListSecretsCommand("", nil)
 		assertEqualCmd(t, listCommand.Execute, cmd)
 	})
@@ -131,8 +131,8 @@ func TestLoginModel_Update(t *testing.T) {
 
 		model, cmd := sut.Update(msg)
 
-		secretsModel := vault.NewSecretsModel("", nil)
-		assert.IsType(t, secretsModel, model)
+		_, ok := model.(vault.SecretsModel)
+		assert.True(t, ok)
 		listCommand := vault.NewListSecretsCommand("", nil)
 		assertEqualCmd(t, listCommand.Execute, cmd)
 	})

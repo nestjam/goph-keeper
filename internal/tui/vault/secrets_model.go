@@ -12,10 +12,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	httpVault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
+	"github.com/nestjam/goph-keeper/internal/tui/vault/cache"
+	vault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
 )
 
-const idColumnIndex = 1
+const (
+	idColumnIndex  = 1
+	zeroStatusCode = 0
+)
 
 var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
@@ -38,18 +42,19 @@ func (k secretsKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{}
 }
 
-type secretsModel struct {
-	keys               secretsKeyMap
-	help               help.Model
+type SecretsModel struct {
 	err                error
 	jwtCookie          *http.Cookie
+	cache              *cache.SecretsCache
+	help               help.Model
 	address            string
-	secrets            []httpVault.Secret
+	keys               secretsKeyMap
 	table              table.Model
 	failtureStatusCode int
+	isOffline          bool
 }
 
-func NewSecretsModel(address string, jwtCookie *http.Cookie) secretsModel {
+func NewSecretsModel(address string, jwtCookie *http.Cookie, cache *cache.SecretsCache) SecretsModel {
 	const (
 		numWidth    = 4
 		idWidth     = 60
@@ -89,7 +94,7 @@ func NewSecretsModel(address string, jwtCookie *http.Cookie) secretsModel {
 		),
 		Edit: key.NewBinding(
 			key.WithKeys(tea.KeyEnter.String()),
-			key.WithHelp("enter", "edit"),
+			key.WithHelp("enter", "view"),
 		),
 		Delete: key.NewBinding(
 			key.WithKeys(tea.KeyDelete.String()),
@@ -105,20 +110,21 @@ func NewSecretsModel(address string, jwtCookie *http.Cookie) secretsModel {
 		),
 	}
 
-	return secretsModel{
+	return SecretsModel{
 		keys:      keys,
 		help:      help.New(),
 		address:   address,
 		jwtCookie: jwtCookie,
 		table:     t,
+		cache:     cache,
 	}
 }
 
-func (m secretsModel) Init() tea.Cmd {
+func (m SecretsModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m SecretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.help.Width = msg.Width
@@ -126,18 +132,19 @@ func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleKeyMsg(msg)
 	case listSecretsCompletedMsg:
 		{
-			m.secrets = msg.secrets
-			rows := make([]table.Row, len(m.secrets))
-			for i := 0; i < len(m.secrets); i++ {
-				secret := m.secrets[i]
-				rows[i] = table.Row{strconv.Itoa(i + 1), secret.ID}
-			}
+			secrets := msg.secrets
+			m.cache.CacheSecrets(secrets)
+
+			rows := newRows(secrets)
 			m.table.SetRows(rows)
+
+			m.setOfflineMode(false)
+			m.failtureStatusCode = zeroStatusCode
 		}
 	case listSecretsFailedMsg:
 		{
 			m.failtureStatusCode = msg.statusCode
-			m.table.Blur()
+			m.setOfflineMode(true)
 		}
 	case deleteSecretCompletedMsg:
 		{
@@ -148,7 +155,7 @@ func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case errMsg:
 		{
 			m.err = msg.err
-			m.table.Blur()
+			m.setOfflineMode(true)
 		}
 	}
 
@@ -157,7 +164,47 @@ func (m secretsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m secretsModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m SecretsModel) View() string {
+	s := strings.Builder{}
+
+	if m.isOffline {
+		s.WriteString("offline mode")
+		s.WriteString("\n")
+	}
+
+	if m.err != nil {
+		s.WriteString(fmt.Sprintf(errTemplate, m.err.Error()))
+	}
+	if m.failtureStatusCode != zeroStatusCode {
+		s.WriteString(fmt.Sprintf(codeTemplate, m.failtureStatusCode))
+	}
+
+	s.WriteString(baseStyle.Render(m.table.View()) + "\n")
+
+	s.WriteString("\n")
+	s.WriteString(m.help.View(m.keys))
+
+	return s.String()
+}
+
+func (m *SecretsModel) setOfflineMode(v bool) {
+	m.isOffline = v
+	m.keys.Add.SetEnabled(!v)
+	m.keys.Delete.SetEnabled(!v)
+}
+
+func newRows(secrets []*vault.Secret) []table.Row {
+	rows := make([]table.Row, len(secrets))
+
+	for i := 0; i < len(secrets); i++ {
+		secret := secrets[i]
+		rows[i] = table.Row{strconv.Itoa(i + 1), secret.ID}
+	}
+
+	return rows
+}
+
+func (m SecretsModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Quit):
 		return m, tea.Quit
@@ -190,25 +237,7 @@ func (m secretsModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func (m secretsModel) View() string {
-	s := strings.Builder{}
-
-	if m.err != nil {
-		s.WriteString(fmt.Sprintf(errTemplate, m.err.Error()))
-	}
-	if m.failtureStatusCode != 0 {
-		s.WriteString(fmt.Sprintf(codeTemplate, m.failtureStatusCode))
-	}
-
-	s.WriteString(baseStyle.Render(m.table.View()) + "\n")
-
-	s.WriteString("\n")
-	s.WriteString(m.help.View(m.keys))
-
-	return s.String()
-}
-
-func (m *secretsModel) getSelectedSecretID() string {
+func (m *SecretsModel) getSelectedSecretID() string {
 	return m.table.SelectedRow()[idColumnIndex]
 }
 

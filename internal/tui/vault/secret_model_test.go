@@ -79,7 +79,7 @@ func TestSecretModel_Update(t *testing.T) {
 
 		model, cmd := sut.Update(msg)
 
-		_, ok := model.(secretsModel)
+		_, ok := model.(SecretsModel)
 		assert.True(t, ok)
 		listSecretsCommand := NewListSecretsCommand(address, jwtCookie)
 		assertEqualCmd(t, listSecretsCommand.Execute, cmd)
