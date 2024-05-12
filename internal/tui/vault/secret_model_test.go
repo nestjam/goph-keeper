@@ -114,7 +114,6 @@ func TestSecretModel_Update(t *testing.T) {
 		cache := cache.New()
 		cache.CacheSecrets(secrets)
 		sut := NewSecretModel(address, jwtCookie, cache)
-		sut.textarea.SetValue("text")
 		const want = http.StatusBadRequest
 		msg := getSecretFailedMsg{
 			secretID:   secrets[0].ID,
@@ -131,7 +130,6 @@ func TestSecretModel_Update(t *testing.T) {
 	t.Run("clear text if failed to get secret and secret is not cached", func(t *testing.T) {
 		cache := cache.New()
 		sut := NewSecretModel(address, jwtCookie, cache)
-		sut.textarea.SetValue("text")
 		const want = http.StatusBadRequest
 		msg := getSecretFailedMsg{statusCode: want}
 
