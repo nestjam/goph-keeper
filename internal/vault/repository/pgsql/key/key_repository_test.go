@@ -27,6 +27,10 @@ func TestKeyRepository(t *testing.T) {
 			t.Helper()
 
 			dsn := h.DataSourceName
+			migrator := migration.NewDatabaseMigrator(dsn)
+			err := migrator.Up()
+			require.NoError(t, err)
+
 			ctx := context.Background()
 			r, err := NewDataKeyRepository(ctx, dsn)
 			require.NoError(t, err)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/nestjam/goph-keeper/internal/config"
 	"github.com/nestjam/goph-keeper/internal/server"
+	"github.com/nestjam/goph-keeper/migration"
 )
 
 type app struct {
@@ -23,6 +24,11 @@ func (a *app) Run(ctx context.Context, args []string) error {
 
 	conf, err := getConfig(args)
 	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	migrator := migration.NewDatabaseMigrator(conf.Postgres.DataSourceName)
+	if err := migrator.Up(); err != nil {
 		return errors.Wrap(err, op)
 	}
 

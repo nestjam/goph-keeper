@@ -31,15 +31,19 @@ func TestSecretRepository(t *testing.T) {
 		NewSecretRepository: func() (vault.SecretRepository, func(), vault.SecretTestData) {
 			t.Helper()
 
+			dsn := h.DataSourceName
+			migrator := migration.NewDatabaseMigrator(dsn)
+			err := migrator.Up()
+			require.NoError(t, err)
+
 			ctx := context.Background()
-			var err error
-			r, err := NewSecretRepository(ctx, h.DataSourceName)
+			r, err := NewSecretRepository(ctx, dsn)
 			require.NoError(t, err)
 
 			closer := func() {
 				r.Close()
 
-				migrator := migration.NewDatabaseMigrator(h.DataSourceName)
+				migrator := migration.NewDatabaseMigrator(dsn)
 				_ = migrator.Drop()
 			}
 

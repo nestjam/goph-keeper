@@ -26,14 +26,19 @@ func TestUserRepository(t *testing.T) {
 		NewUserRepository: func() (auth.UserRepository, func()) {
 			t.Helper()
 
+			dsn := h.DataSourceName
+			migrator := migration.NewDatabaseMigrator(dsn)
+			err := migrator.Up()
+			require.NoError(t, err)
+
 			ctx := context.Background()
-			r, err := NewUserRepository(ctx, h.DataSourceName)
+			r, err := NewUserRepository(ctx, dsn)
 			require.NoError(t, err)
 
 			return r, func() {
 				r.Close()
 
-				migrator := migration.NewDatabaseMigrator(h.DataSourceName)
+				migrator := migration.NewDatabaseMigrator(dsn)
 				_ = migrator.Drop()
 			}
 		},

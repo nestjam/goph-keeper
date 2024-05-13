@@ -10,7 +10,6 @@ import (
 
 	"github.com/nestjam/goph-keeper/internal/vault"
 	"github.com/nestjam/goph-keeper/internal/vault/model"
-	"github.com/nestjam/goph-keeper/migration"
 )
 
 type secretRepository struct {
@@ -20,11 +19,6 @@ type secretRepository struct {
 
 func NewSecretRepository(ctx context.Context, connString string) (*secretRepository, error) {
 	const op = "new secret repository"
-
-	migrator := migration.NewDatabaseMigrator(connString)
-	if err := migrator.Up(); err != nil {
-		return nil, errors.Wrapf(err, op)
-	}
 
 	var err error
 	pool, err := initPool(ctx, connString)

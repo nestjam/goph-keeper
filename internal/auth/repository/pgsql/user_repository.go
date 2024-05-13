@@ -12,7 +12,6 @@ import (
 
 	"github.com/nestjam/goph-keeper/internal/auth"
 	"github.com/nestjam/goph-keeper/internal/auth/model"
-	"github.com/nestjam/goph-keeper/migration"
 )
 
 type userRepository struct {
@@ -22,11 +21,6 @@ type userRepository struct {
 
 func NewUserRepository(ctx context.Context, connString string) (*userRepository, error) {
 	const op = "new user repository"
-
-	migrator := migration.NewDatabaseMigrator(connString)
-	if err := migrator.Up(); err != nil {
-		return nil, errors.Wrapf(err, op)
-	}
 
 	var err error
 	pool, err := initPool(ctx, connString)
