@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"crypto/tls"
 	"net/url"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,26 +11,23 @@ import (
 )
 
 type registerCommand struct {
+	client   *resty.Client
 	address  string
 	email    string
 	password string
 }
 
-func newRegisterCommand(address, email, password string) registerCommand {
+func newRegisterCommand(address, email, password string, client *resty.Client) registerCommand {
 	return registerCommand{
 		address:  address,
 		email:    email,
 		password: password,
+		client:   client,
 	}
 }
 
 //nolint:dupl // loginCommand is not duplicate
 func (c registerCommand) execute() tea.Msg {
-	client := resty.New()
-
-	//nolint:gosec // using self-signed certificate
-	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-
 	req := httpAuth.RegisterUserRequest{
 		Email:    c.email,
 		Password: c.password,
@@ -41,7 +37,7 @@ func (c registerCommand) execute() tea.Msg {
 		return errMsg{err}
 	}
 
-	resp, err := client.R().SetBody(req).Post(url)
+	resp, err := c.client.R().SetBody(req).Post(url)
 	if err != nil {
 		return errMsg{err}
 	}

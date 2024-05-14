@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +25,8 @@ func TestDeleteSecretCommand(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer server.Close()
-		sut := newDeleteSecretCommand(secretID, server.URL, wantCookie)
+		client := resty.New()
+		sut := newDeleteSecretCommand(secretID, server.URL, wantCookie, client)
 
 		got := sut.execute()
 
@@ -46,7 +48,8 @@ func TestDeleteSecretCommand(t *testing.T) {
 		server := httptest.NewServer(nil)
 		serverURL := server.URL
 		server.Close()
-		sut := newDeleteSecretCommand(secretID, serverURL, &http.Cookie{})
+		client := resty.New()
+		sut := newDeleteSecretCommand(secretID, serverURL, &http.Cookie{}, client)
 
 		got := sut.execute()
 
@@ -58,7 +61,8 @@ func TestDeleteSecretCommand(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		}))
 		defer server.Close()
-		sut := newDeleteSecretCommand(secretID, server.URL, &http.Cookie{})
+		client := resty.New()
+		sut := newDeleteSecretCommand(secretID, server.URL, &http.Cookie{}, client)
 
 		got := sut.execute()
 

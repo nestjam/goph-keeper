@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,7 +20,8 @@ func TestSecretModel_Init(t *testing.T) {
 		jwtCookie = &http.Cookie{}
 	)
 	cache := cache.New()
-	sut := NewSecretModel(address, jwtCookie, cache)
+	client := resty.New()
+	sut := NewSecretModel(address, jwtCookie, cache, client)
 
 	got := sut.Init()
 
@@ -34,7 +36,8 @@ func TestSecretModel_Update(t *testing.T) {
 
 	t.Run("user enter text", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretModel(address, jwtCookie, cache, client)
 		msg := tea.KeyMsg{Type: tea.KeySpace, Runes: []rune("text")}
 
 		model, cmd := sut.Update(msg)
@@ -45,7 +48,8 @@ func TestSecretModel_Update(t *testing.T) {
 	})
 	t.Run("user exited by ctrl+c", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretModel(address, jwtCookie, cache, client)
 		msg := tea.KeyMsg{Type: tea.KeyCtrlC}
 
 		_, cmd := sut.Update(msg)
@@ -54,7 +58,8 @@ func TestSecretModel_Update(t *testing.T) {
 	})
 	t.Run("get secret request completed", func(t *testing.T) {
 		cache := cache.New()
-		sut := tea.Model(NewSecretModel(address, jwtCookie, cache))
+		client := resty.New()
+		sut := tea.Model(NewSecretModel(address, jwtCookie, cache, client))
 		wantSecret := vault.Secret{ID: "1", Data: "data"}
 		msg := getSecretCompletedMsg{
 			secret: wantSecret,
@@ -73,7 +78,8 @@ func TestSecretModel_Update(t *testing.T) {
 	})
 	t.Run("error on get secret", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretModel(address, jwtCookie, cache, client)
 		msg := getSecretFailedMsg{err: errors.New("error")}
 
 		model, _ := sut.Update(msg)
@@ -90,7 +96,8 @@ func TestSecretModel_Update(t *testing.T) {
 		}
 		cache := cache.New()
 		cache.CacheSecret(secret)
-		sut := NewSecretModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretModel(address, jwtCookie, cache, client)
 		const want = http.StatusBadRequest
 		msg := getSecretFailedMsg{
 			statusCode: want,
@@ -113,7 +120,8 @@ func TestSecretModel_Update(t *testing.T) {
 		}
 		cache := cache.New()
 		cache.CacheSecrets(secrets)
-		sut := NewSecretModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretModel(address, jwtCookie, cache, client)
 		const want = http.StatusBadRequest
 		msg := getSecretFailedMsg{
 			secretID:   secrets[0].ID,
@@ -129,7 +137,8 @@ func TestSecretModel_Update(t *testing.T) {
 	})
 	t.Run("clear text if failed to get secret and secret is not cached", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretModel(address, jwtCookie, cache, client)
 		const want = http.StatusBadRequest
 		msg := getSecretFailedMsg{statusCode: want}
 
@@ -141,7 +150,8 @@ func TestSecretModel_Update(t *testing.T) {
 	})
 	t.Run("error", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretModel(address, jwtCookie, cache, client)
 		msg := errMsg{err: errors.New("error")}
 
 		model, _ := sut.Update(msg)
@@ -155,7 +165,8 @@ func TestSecretModel_Update(t *testing.T) {
 		cache := cache.New()
 		secret := &vault.Secret{ID: "1", Data: "123"}
 		cache.CacheSecret(secret)
-		sut := NewSecretModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretModel(address, jwtCookie, cache, client)
 		const want = http.StatusBadRequest
 		msg := getSecretFailedMsg{
 			statusCode: want,
@@ -170,21 +181,23 @@ func TestSecretModel_Update(t *testing.T) {
 	})
 	t.Run("return to list of secrets on esc", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretModel(address, jwtCookie, cache, client)
 		msg := tea.KeyMsg{Type: tea.KeyEsc}
 
 		model, cmd := sut.Update(msg)
 
 		_, ok := model.(SecretsModel)
 		assert.True(t, ok)
-		listSecretsCommand := NewListSecretsCommand(address, jwtCookie)
+		listSecretsCommand := NewListSecretsCommand(address, jwtCookie, client)
 		assertEqualCmd(t, listSecretsCommand.Execute, cmd)
 	})
 	t.Run("create new secret requested", func(t *testing.T) {
 		want := vault.Secret{}
 		msg := createSecretRequestedMsg{}
 		cache := cache.New()
-		sut := NewSecretModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretModel(address, jwtCookie, cache, client)
 
 		model, cmd := sut.Update(msg)
 
@@ -196,7 +209,8 @@ func TestSecretModel_Update(t *testing.T) {
 	})
 	t.Run("save secret by ctrl+s", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretModel(address, jwtCookie, cache, client)
 		secret := vault.Secret{}
 		sut.secret = secret
 		sut.textarea.SetValue("data")
@@ -206,14 +220,15 @@ func TestSecretModel_Update(t *testing.T) {
 
 		_, ok := model.(secretModel)
 		assert.True(t, ok)
-		saveSecretCommand := newSaveSecretCommand(secret, address, jwtCookie)
+		saveSecretCommand := newSaveSecretCommand(secret, address, jwtCookie, client)
 		assertEqualCmd(t, saveSecretCommand.execute, cmd)
 	})
 	t.Run("save secret completed", func(t *testing.T) {
 		want := vault.Secret{ID: "1", Data: "data"}
 		msg := saveSecretCompletedMsg{want}
 		cache := cache.New()
-		sut := NewSecretModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretModel(address, jwtCookie, cache, client)
 		sut.isNew = true
 
 		model, cmd := sut.Update(msg)
@@ -230,7 +245,8 @@ func TestSecretModel_Update(t *testing.T) {
 	})
 	t.Run("window size changed", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretModel(address, jwtCookie, cache, client)
 		msg := tea.WindowSizeMsg{Width: 100}
 		require.NotEqual(t, msg.Width, sut.help.Width)
 

@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"crypto/tls"
 	"net/http"
 	"net/url"
 
@@ -13,18 +12,23 @@ import (
 )
 
 type loginCommand struct {
+	client   *resty.Client
 	address  string
 	email    string
 	password string
 }
 
+func newLoginCommand(address, email, password string, client *resty.Client) loginCommand {
+	return loginCommand{
+		address:  address,
+		email:    email,
+		password: password,
+		client:   client,
+	}
+}
+
 //nolint:dupl // registerCommand is not duplicate
 func (c loginCommand) execute() tea.Msg {
-	client := resty.New()
-
-	//nolint:gosec // using self-signed certificate
-	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-
 	req := httpAuth.LoginUserRequest{
 		Email:    c.email,
 		Password: c.password,
@@ -34,7 +38,7 @@ func (c loginCommand) execute() tea.Msg {
 		return errMsg{err}
 	}
 
-	resp, err := client.R().SetBody(req).Post(url)
+	resp, err := c.client.R().SetBody(req).Post(url)
 	if err != nil {
 		return errMsg{err}
 	}

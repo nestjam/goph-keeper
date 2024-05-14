@@ -1,7 +1,6 @@
 package vault
 
 import (
-	"crypto/tls"
 	"net/http"
 	"net/url"
 
@@ -10,30 +9,27 @@ import (
 )
 
 type deleteSecretCommand struct {
+	client    *resty.Client
 	jwtCookie *http.Cookie
 	address   string
 	secretID  string
 }
 
-func newDeleteSecretCommand(secretID, address string, jwtCookie *http.Cookie) deleteSecretCommand {
+func newDeleteSecretCommand(secretID, addr string, jwt *http.Cookie, client *resty.Client) deleteSecretCommand {
 	return deleteSecretCommand{
-		jwtCookie: jwtCookie,
-		address:   address,
+		jwtCookie: jwt,
+		address:   addr,
 		secretID:  secretID,
+		client:    client,
 	}
 }
 
 func (c deleteSecretCommand) execute() tea.Msg {
-	client := resty.New()
-
-	//nolint:gosec // using self-signed certificate
-	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-
 	url, err := url.JoinPath(c.address, baseURL, c.secretID)
 	if err != nil {
 		return errMsg{err}
 	}
-	resp, err := client.R().SetCookie(c.jwtCookie).Delete(url)
+	resp, err := c.client.R().SetCookie(c.jwtCookie).Delete(url)
 	if err != nil {
 		return errMsg{err}
 	}

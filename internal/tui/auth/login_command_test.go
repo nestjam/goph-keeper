@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nestjam/goph-keeper/internal/utils"
@@ -24,11 +25,7 @@ func TestLoginCommand(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer server.Close()
-		sut := loginCommand{
-			address:  server.URL,
-			email:    "user@email.com",
-			password: "1234",
-		}
+		sut := newLoginCommand(server.URL, "user@email.com", "1234", resty.New())
 		wantURL := "/login"
 
 		got := sut.execute()
@@ -39,11 +36,8 @@ func TestLoginCommand(t *testing.T) {
 		assert.NotNil(t, msg.jwtCookie)
 	})
 	t.Run("invalid server address", func(t *testing.T) {
-		sut := loginCommand{
-			address:  string([]byte{0x7f}), // ASCII control character
-			email:    "user@email.com",
-			password: "1234",
-		}
+		address := string([]byte{0x7f}) // ASCII control character
+		sut := newLoginCommand(address, "user@email.com", "1234", resty.New())
 
 		got := sut.execute()
 
@@ -53,11 +47,7 @@ func TestLoginCommand(t *testing.T) {
 		server := httptest.NewServer(nil)
 		serverURL := server.URL
 		server.Close()
-		sut := loginCommand{
-			address:  serverURL,
-			email:    "user@email.com",
-			password: "1234",
-		}
+		sut := newLoginCommand(serverURL, "user@email.com", "1234", resty.New())
 
 		got := sut.execute()
 
@@ -68,11 +58,7 @@ func TestLoginCommand(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}))
 		defer server.Close()
-		sut := loginCommand{
-			address:  server.URL,
-			email:    "user@email.com",
-			password: "1234",
-		}
+		sut := newLoginCommand(server.URL, "user@email.com", "1234", resty.New())
 
 		got := sut.execute()
 
@@ -85,11 +71,7 @@ func TestLoginCommand(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer server.Close()
-		sut := loginCommand{
-			address:  server.URL,
-			email:    "user@email.com",
-			password: "1234",
-		}
+		sut := newLoginCommand(server.URL, "user@email.com", "1234", resty.New())
 
 		got := sut.execute()
 

@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/go-resty/resty/v2"
 
 	"github.com/nestjam/goph-keeper/internal/tui/vault"
 	"github.com/nestjam/goph-keeper/internal/tui/vault/cache"
@@ -38,6 +39,7 @@ func (k loginKeyMap) FullHelp() [][]key.Binding {
 
 type loginModel struct {
 	err          error
+	client       *resty.Client
 	help         help.Model
 	address      string
 	email        string
@@ -49,7 +51,7 @@ type loginModel struct {
 	cursor       int
 }
 
-func NewLoginModel(address string) loginModel {
+func NewLoginModel(address string, client *resty.Client) loginModel {
 	ti := textinput.New()
 	ti.Placeholder = enterServerAddress
 	if address != "" {
@@ -78,6 +80,7 @@ func NewLoginModel(address string) loginModel {
 
 	return loginModel{
 		address:   address,
+		client:    client,
 		keys:      keys,
 		help:      help.New(),
 		textinput: ti,
@@ -96,10 +99,12 @@ func (m loginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return handleKeyMsg(msg, m)
 	case loginCompletedMsg:
 		cache := cache.New()
-		return vault.NewSecretsModel(m.address, msg.jwtCookie, cache), listSecrets(m.address, msg.jwtCookie)
+		cmd := listSecrets(m.address, msg.jwtCookie, m.client)
+		return vault.NewSecretsModel(m.address, msg.jwtCookie, cache, m.client), cmd
 	case registerCompletedMsg:
 		cache := cache.New()
-		return vault.NewSecretsModel(m.address, msg.jwtCookie, cache), listSecrets(m.address, msg.jwtCookie)
+		cmd := listSecrets(m.address, msg.jwtCookie, m.client)
+		return vault.NewSecretsModel(m.address, msg.jwtCookie, cache, m.client), cmd
 	case loginFailedMsg, registerFailedMsg:
 		{
 			m.password = ""
@@ -128,10 +133,10 @@ func handleKeyMsg(msg tea.KeyMsg, m loginModel) (tea.Model, tea.Cmd) {
 
 		if isValid(m.address, m.email, m.password) {
 			if m.cursor == 0 {
-				return m, login(m.address, m.email, m.password)
+				return m, login(m.address, m.email, m.password, m.client)
 			}
 			if m.cursor == 1 {
-				return m, register(m.address, m.email, m.password)
+				return m, register(m.address, m.email, m.password, m.client)
 			}
 		}
 		return m, nil
@@ -203,22 +208,18 @@ func isValid(address, email, password string) bool {
 	return address != "" && email != "" && password != ""
 }
 
-func login(address, email, password string) tea.Cmd {
-	cmd := loginCommand{
-		address:  address,
-		email:    email,
-		password: password,
-	}
+func login(addr, email, password string, client *resty.Client) tea.Cmd {
+	cmd := newLoginCommand(addr, email, password, client)
 	return cmd.execute
 }
 
-func register(address, email, password string) tea.Cmd {
-	cmd := newRegisterCommand(address, email, password)
+func register(addr, email, password string, client *resty.Client) tea.Cmd {
+	cmd := newRegisterCommand(addr, email, password, client)
 	return cmd.execute
 }
 
-func listSecrets(address string, jwtCookie *http.Cookie) tea.Cmd {
-	cmd := vault.NewListSecretsCommand(address, jwtCookie)
+func listSecrets(addr string, jwt *http.Cookie, client *resty.Client) tea.Cmd {
+	cmd := vault.NewListSecretsCommand(addr, jwt, client)
 	return cmd.Execute
 }
 

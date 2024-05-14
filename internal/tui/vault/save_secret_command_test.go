@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 
 	httpVault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
@@ -37,7 +38,8 @@ func TestSaveSecretCommand(t *testing.T) {
 			_ = writeJSON(w, http.StatusCreated, httpVault.AddSecretResponse{Secret: s})
 		}))
 		defer server.Close()
-		sut := newSaveSecretCommand(secret, server.URL, wantCookie)
+		client := resty.New()
+		sut := newSaveSecretCommand(secret, server.URL, wantCookie, client)
 
 		got := sut.execute()
 
@@ -62,7 +64,8 @@ func TestSaveSecretCommand(t *testing.T) {
 		secret := httpVault.Secret{
 			Data: "data",
 		}
-		sut := newSaveSecretCommand(secret, serverURL, &http.Cookie{})
+		client := resty.New()
+		sut := newSaveSecretCommand(secret, serverURL, &http.Cookie{}, client)
 
 		got := sut.execute()
 
@@ -77,7 +80,8 @@ func TestSaveSecretCommand(t *testing.T) {
 		secret := httpVault.Secret{
 			Data: "data",
 		}
-		sut := newSaveSecretCommand(secret, server.URL, jwtCookie)
+		client := resty.New()
+		sut := newSaveSecretCommand(secret, server.URL, jwtCookie, client)
 
 		got := sut.execute()
 
@@ -114,7 +118,8 @@ func TestSaveSecretCommand(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer server.Close()
-		sut := newSaveSecretCommand(secret, server.URL, wantCookie)
+		client := resty.New()
+		sut := newSaveSecretCommand(secret, server.URL, wantCookie, client)
 
 		got := sut.execute()
 
@@ -141,7 +146,8 @@ func TestSaveSecretCommand(t *testing.T) {
 			ID:   "1",
 			Data: "data",
 		}
-		sut := newSaveSecretCommand(secret, serverURL, &http.Cookie{})
+		client := resty.New()
+		sut := newSaveSecretCommand(secret, serverURL, &http.Cookie{}, client)
 
 		got := sut.execute()
 
@@ -157,7 +163,8 @@ func TestSaveSecretCommand(t *testing.T) {
 			ID:   "1",
 			Data: "data",
 		}
-		sut := newSaveSecretCommand(secret, server.URL, jwtCookie)
+		client := resty.New()
+		sut := newSaveSecretCommand(secret, server.URL, jwtCookie, client)
 
 		got := sut.execute()
 

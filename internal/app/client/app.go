@@ -1,7 +1,10 @@
 package client
 
 import (
+	"crypto/tls"
+
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 
 	config "github.com/nestjam/goph-keeper/internal/config/client"
@@ -23,7 +26,12 @@ func (a *app) Run(buildVersion, buildDate string, args []string) error {
 		return errors.Wrap(err, op)
 	}
 
-	m := auth.NewLoginModel(conf.ServerAddress)
+	client := resty.New()
+
+	//nolint:gosec // using self-signed certificate
+	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+
+	m := auth.NewLoginModel(conf.ServerAddress, client)
 	m.BuildDate = buildDate
 	m.BuildVersion = buildVersion
 

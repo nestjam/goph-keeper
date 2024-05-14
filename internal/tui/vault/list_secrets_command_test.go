@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
@@ -33,7 +34,8 @@ func TestListSecretsCommand(t *testing.T) {
 			_ = writeJSON(w, http.StatusOK, resp)
 		}))
 		defer server.Close()
-		sut := NewListSecretsCommand(server.URL, wantCookie)
+		client := resty.New()
+		sut := NewListSecretsCommand(server.URL, wantCookie, client)
 
 		got := sut.Execute()
 
@@ -58,7 +60,8 @@ func TestListSecretsCommand(t *testing.T) {
 		server := httptest.NewServer(nil)
 		serverURL := server.URL
 		server.Close()
-		sut := NewListSecretsCommand(serverURL, &http.Cookie{})
+		client := resty.New()
+		sut := NewListSecretsCommand(serverURL, &http.Cookie{}, client)
 
 		msg := sut.Execute()
 
@@ -72,7 +75,8 @@ func TestListSecretsCommand(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}))
 		defer server.Close()
-		sut := NewListSecretsCommand(server.URL, &http.Cookie{})
+		client := resty.New()
+		sut := NewListSecretsCommand(server.URL, &http.Cookie{}, client)
 
 		got := sut.Execute()
 

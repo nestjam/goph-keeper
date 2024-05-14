@@ -8,6 +8,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -20,8 +21,9 @@ func TestSecretsModel_Init(t *testing.T) {
 		address   = "/"
 		jwtCookie = &http.Cookie{}
 		cache     = cache.New()
+		client    = resty.New()
 	)
-	sut := NewSecretsModel(address, jwtCookie, cache)
+	sut := NewSecretsModel(address, jwtCookie, cache, client)
 
 	got := sut.Init()
 
@@ -36,7 +38,8 @@ func TestSecretsModel_Update(t *testing.T) {
 
 	t.Run("user exited by ctrl+c", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretsModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretsModel(address, jwtCookie, cache, client)
 		msg := tea.KeyMsg{Type: tea.KeyCtrlC}
 
 		_, cmd := sut.Update(msg)
@@ -45,7 +48,8 @@ func TestSecretsModel_Update(t *testing.T) {
 	})
 	t.Run("user exited by esc", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretsModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretsModel(address, jwtCookie, cache, client)
 		msg := tea.KeyMsg{Type: tea.KeyEsc}
 
 		_, cmd := sut.Update(msg)
@@ -54,7 +58,8 @@ func TestSecretsModel_Update(t *testing.T) {
 	})
 	t.Run("get secrets request completed", func(t *testing.T) {
 		cache := cache.New()
-		sut := tea.Model(NewSecretsModel(address, jwtCookie, cache))
+		client := resty.New()
+		sut := tea.Model(NewSecretsModel(address, jwtCookie, cache, client))
 		wantSecrets := []*vault.Secret{
 			{ID: "2", Name: "secret2"},
 			{ID: "3", Name: "secret3"},
@@ -78,7 +83,8 @@ func TestSecretsModel_Update(t *testing.T) {
 	})
 	t.Run("user pressed enter on selected row", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretsModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretsModel(address, jwtCookie, cache, client)
 		secrets := []*vault.Secret{
 			{ID: "2"},
 			{ID: "3"},
@@ -98,13 +104,14 @@ func TestSecretsModel_Update(t *testing.T) {
 
 		_, ok := model.(secretModel)
 		assert.True(t, ok)
-		getSecretCommand := newGetSecretCommand(wantID, address, jwtCookie)
+		getSecretCommand := newGetSecretCommand(wantID, address, jwtCookie, client)
 		assert.Equal(t, wantID, getSecretCommand.secretID)
 		assertEqualCmd(t, getSecretCommand.execute, cmd)
 	})
 	t.Run("error on get secrets", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretsModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretsModel(address, jwtCookie, cache, client)
 		msg := listSecretsFailedMsg{err: errors.New("error")}
 
 		model, _ := sut.Update(msg)
@@ -124,8 +131,9 @@ func TestSecretsModel_Update(t *testing.T) {
 			{ID: "2", Name: ""},
 		}
 		cache := cache.New()
+		client := resty.New()
 		cache.CacheSecrets(secrets)
-		sut := NewSecretsModel(address, jwtCookie, cache)
+		sut := NewSecretsModel(address, jwtCookie, cache, client)
 		const wantStatusCode = http.StatusBadRequest
 		msg := listSecretsFailedMsg{statusCode: wantStatusCode}
 
@@ -141,7 +149,8 @@ func TestSecretsModel_Update(t *testing.T) {
 	})
 	t.Run("success retry after failed to list secrets", func(t *testing.T) {
 		cache := cache.New()
-		sut := tea.Model(NewSecretsModel(address, jwtCookie, cache))
+		client := resty.New()
+		sut := tea.Model(NewSecretsModel(address, jwtCookie, cache, client))
 		secrets := []*vault.Secret{}
 		var msg tea.Msg = listSecretsFailedMsg{statusCode: http.StatusTooManyRequests}
 		sut, _ = sut.Update(msg)
@@ -159,7 +168,8 @@ func TestSecretsModel_Update(t *testing.T) {
 	})
 	t.Run("delete selected secret on del", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretsModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretsModel(address, jwtCookie, cache, client)
 		secrets := []*vault.Secret{
 			{ID: "2"},
 		}
@@ -176,7 +186,7 @@ func TestSecretsModel_Update(t *testing.T) {
 
 		_, ok := model.(SecretsModel)
 		assert.True(t, ok)
-		deleteSecretCommand := newDeleteSecretCommand(wantID, address, jwtCookie)
+		deleteSecretCommand := newDeleteSecretCommand(wantID, address, jwtCookie, client)
 		assertEqualCmd(t, deleteSecretCommand.execute, cmd)
 	})
 	t.Run("selected secret deleted", func(t *testing.T) {
@@ -186,7 +196,8 @@ func TestSecretsModel_Update(t *testing.T) {
 		}
 		cache := cache.New()
 		cache.CacheSecrets(secrets)
-		sut := NewSecretsModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretsModel(address, jwtCookie, cache, client)
 		rows := []table.Row{
 			{"1", secretID},
 		}
@@ -204,7 +215,8 @@ func TestSecretsModel_Update(t *testing.T) {
 	})
 	t.Run("add new secret by ctrl+n", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretsModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretsModel(address, jwtCookie, cache, client)
 		msg := tea.KeyMsg{Type: tea.KeyCtrlN}
 
 		model, cmd := sut.Update(msg)
@@ -216,7 +228,8 @@ func TestSecretsModel_Update(t *testing.T) {
 	})
 	t.Run("window size changed", func(t *testing.T) {
 		cache := cache.New()
-		sut := NewSecretsModel(address, jwtCookie, cache)
+		client := resty.New()
+		sut := NewSecretsModel(address, jwtCookie, cache, client)
 		msg := tea.WindowSizeMsg{Width: 100}
 		require.NotEqual(t, msg.Width, sut.help.Width)
 

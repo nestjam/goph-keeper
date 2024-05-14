@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nestjam/goph-keeper/internal/utils"
@@ -25,7 +26,8 @@ func TestRegisterCommand(t *testing.T) {
 		}))
 		defer server.Close()
 		wantURL := "/register"
-		sut := newRegisterCommand(server.URL, "user@email.com", "1234")
+		client := resty.New()
+		sut := newRegisterCommand(server.URL, "user@email.com", "1234", client)
 
 		got := sut.execute()
 
@@ -35,8 +37,9 @@ func TestRegisterCommand(t *testing.T) {
 		assert.NotNil(t, msg.jwtCookie)
 	})
 	t.Run("invalid server address", func(t *testing.T) {
+		client := resty.New()
 		sut := newRegisterCommand(string([]byte{0x7f}), // ASCII control character
-			"user@email.com", "1234")
+			"user@email.com", "1234", client)
 
 		got := sut.execute()
 
@@ -46,7 +49,8 @@ func TestRegisterCommand(t *testing.T) {
 		server := httptest.NewServer(nil)
 		serverURL := server.URL
 		server.Close()
-		sut := newRegisterCommand(serverURL, "user@email.com", "1234")
+		client := resty.New()
+		sut := newRegisterCommand(serverURL, "user@email.com", "1234", client)
 
 		got := sut.execute()
 
@@ -57,7 +61,8 @@ func TestRegisterCommand(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}))
 		defer server.Close()
-		sut := newRegisterCommand(server.URL, "user@email.com", "1234")
+		client := resty.New()
+		sut := newRegisterCommand(server.URL, "user@email.com", "1234", client)
 
 		got := sut.execute()
 
@@ -70,7 +75,8 @@ func TestRegisterCommand(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer server.Close()
-		sut := newRegisterCommand(server.URL, "user@email.com", "1234")
+		client := resty.New()
+		sut := newRegisterCommand(server.URL, "user@email.com", "1234", client)
 
 		got := sut.execute()
 

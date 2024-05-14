@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 
 	vaultHttp "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
@@ -32,7 +33,8 @@ func TestGetSecretCommand(t *testing.T) {
 			_ = writeJSON(w, http.StatusOK, resp)
 		}))
 		defer server.Close()
-		sut := newGetSecretCommand(secretID, server.URL, wantCookie)
+		client := resty.New()
+		sut := newGetSecretCommand(secretID, server.URL, wantCookie, client)
 
 		got := sut.execute()
 
@@ -58,7 +60,8 @@ func TestGetSecretCommand(t *testing.T) {
 		server := httptest.NewServer(nil)
 		serverURL := server.URL
 		server.Close()
-		sut := newGetSecretCommand(secretID, serverURL, &http.Cookie{})
+		client := resty.New()
+		sut := newGetSecretCommand(secretID, serverURL, &http.Cookie{}, client)
 
 		msg := sut.execute()
 
@@ -75,7 +78,8 @@ func TestGetSecretCommand(t *testing.T) {
 		}))
 		defer server.Close()
 		jwtCookie := &http.Cookie{}
-		sut := newGetSecretCommand(secretID, server.URL, jwtCookie)
+		client := resty.New()
+		sut := newGetSecretCommand(secretID, server.URL, jwtCookie, client)
 
 		got := sut.execute()
 

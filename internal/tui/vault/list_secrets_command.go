@@ -1,7 +1,6 @@
 package vault
 
 import (
-	"crypto/tls"
 	"net/http"
 	"net/url"
 
@@ -12,23 +11,20 @@ import (
 )
 
 type listSecretsCommand struct {
+	client    *resty.Client
 	jwtCookie *http.Cookie
 	address   string
 }
 
-func NewListSecretsCommand(address string, jwtCookie *http.Cookie) listSecretsCommand {
+func NewListSecretsCommand(addr string, jwt *http.Cookie, client *resty.Client) listSecretsCommand {
 	return listSecretsCommand{
-		address:   address,
-		jwtCookie: jwtCookie,
+		address:   addr,
+		jwtCookie: jwt,
+		client:    client,
 	}
 }
 
 func (c listSecretsCommand) Execute() tea.Msg {
-	client := resty.New()
-
-	//nolint:gosec // using self-signed certificate
-	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-
 	url, err := url.JoinPath(c.address, baseURL)
 	if err != nil {
 		return listSecretsFailedMsg{err: err}
@@ -37,7 +33,7 @@ func (c listSecretsCommand) Execute() tea.Msg {
 	var res struct {
 		List []*httpVault.Secret `json:"list,omitempty"`
 	}
-	resp, err := client.R().SetResult(&res).SetCookie(c.jwtCookie).Get(url)
+	resp, err := c.client.R().SetResult(&res).SetCookie(c.jwtCookie).Get(url)
 	if err != nil {
 		return listSecretsFailedMsg{err: err}
 	}

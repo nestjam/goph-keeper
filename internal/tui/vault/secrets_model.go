@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/go-resty/resty/v2"
 
 	"github.com/nestjam/goph-keeper/internal/tui/vault/cache"
 	vault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
@@ -44,6 +45,7 @@ func (k secretsKeyMap) FullHelp() [][]key.Binding {
 
 type SecretsModel struct {
 	err                error
+	client             *resty.Client
 	jwtCookie          *http.Cookie
 	cache              *cache.SecretsCache
 	help               help.Model
@@ -54,7 +56,7 @@ type SecretsModel struct {
 	isOffline          bool
 }
 
-func NewSecretsModel(address string, jwtCookie *http.Cookie, cache *cache.SecretsCache) SecretsModel {
+func NewSecretsModel(addr string, jwt *http.Cookie, cache *cache.SecretsCache, c *resty.Client) SecretsModel {
 	const (
 		numWidth    = 4
 		idWidth     = 30
@@ -115,8 +117,9 @@ func NewSecretsModel(address string, jwtCookie *http.Cookie, cache *cache.Secret
 	return SecretsModel{
 		keys:      keys,
 		help:      help.New(),
-		address:   address,
-		jwtCookie: jwtCookie,
+		address:   addr,
+		client:    c,
+		jwtCookie: jwt,
 		table:     t,
 		cache:     cache,
 	}
@@ -218,20 +221,20 @@ func (m SecretsModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Edit):
 		{
 			id := m.getSelectedSecretID()
-			model := NewSecretModel(m.address, m.jwtCookie, m.cache)
-			cmd := getSecret(id, m.address, m.jwtCookie)
+			model := NewSecretModel(m.address, m.jwtCookie, m.cache, m.client)
+			cmd := getSecret(id, m.address, m.jwtCookie, m.client)
 			return model, cmd
 		}
 	case key.Matches(msg, m.keys.Delete):
 		{
 			id := m.getSelectedSecretID()
 			model := m
-			cmd := deleteSecret(id, m.address, m.jwtCookie)
+			cmd := deleteSecret(id, m.address, m.jwtCookie, m.client)
 			return model, cmd
 		}
 	case key.Matches(msg, m.keys.Add):
 		{
-			model := NewSecretModel(m.address, m.jwtCookie, m.cache)
+			model := NewSecretModel(m.address, m.jwtCookie, m.cache, m.client)
 			cmd := createSecret()
 			return model, cmd
 		}
@@ -248,13 +251,13 @@ func (m *SecretsModel) getSelectedSecretID() string {
 	return m.table.SelectedRow()[idColumnIndex]
 }
 
-func getSecret(id string, address string, jwtCookie *http.Cookie) tea.Cmd {
-	cmd := newGetSecretCommand(id, address, jwtCookie)
+func getSecret(id string, addr string, jwt *http.Cookie, client *resty.Client) tea.Cmd {
+	cmd := newGetSecretCommand(id, addr, jwt, client)
 	return cmd.execute
 }
 
-func deleteSecret(id string, address string, jwtCookie *http.Cookie) tea.Cmd {
-	cmd := newDeleteSecretCommand(id, address, jwtCookie)
+func deleteSecret(id string, addr string, jwt *http.Cookie, client *resty.Client) tea.Cmd {
+	cmd := newDeleteSecretCommand(id, addr, jwt, client)
 	return cmd.execute
 }
 

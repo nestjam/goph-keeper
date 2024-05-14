@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/go-resty/resty/v2"
 
 	"github.com/nestjam/goph-keeper/internal/tui/vault/cache"
 	vault "github.com/nestjam/goph-keeper/internal/vault/delivery/http"
@@ -31,6 +32,7 @@ func (k secretKeyMap) FullHelp() [][]key.Binding {
 type secretModel struct {
 	textarea           textarea.Model
 	err                error
+	client             *resty.Client
 	jwtCookie          *http.Cookie
 	cache              *cache.SecretsCache
 	help               help.Model
@@ -43,7 +45,7 @@ type secretModel struct {
 	dataCached         bool
 }
 
-func NewSecretModel(address string, jwtCookie *http.Cookie, cache *cache.SecretsCache) secretModel {
+func NewSecretModel(addr string, jwt *http.Cookie, cache *cache.SecretsCache, client *resty.Client) secretModel {
 	ti := textarea.New()
 	ti.Focus()
 
@@ -66,9 +68,10 @@ func NewSecretModel(address string, jwtCookie *http.Cookie, cache *cache.Secrets
 		keys:      keys,
 		help:      help.New(),
 		textarea:  ti,
-		address:   address,
-		jwtCookie: jwtCookie,
+		address:   addr,
+		jwtCookie: jwt,
 		cache:     cache,
+		client:    client,
 	}
 }
 
@@ -168,13 +171,13 @@ func (m secretModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Quit):
 		return m, tea.Quit
 	case key.Matches(msg, m.keys.Return):
-		model := NewSecretsModel(m.address, m.jwtCookie, m.cache)
-		cmd := listSecrets(m.address, m.jwtCookie)
+		model := NewSecretsModel(m.address, m.jwtCookie, m.cache, m.client)
+		cmd := listSecrets(m.address, m.jwtCookie, m.client)
 		return model, cmd
 	case key.Matches(msg, m.keys.Save):
 		secret := m.secret
 		secret.Data = m.textarea.Value()
-		cmd := saveSecret(secret, m.address, m.jwtCookie)
+		cmd := saveSecret(secret, m.address, m.jwtCookie, m.client)
 		return m, cmd
 	default:
 		var cmd tea.Cmd
@@ -183,12 +186,12 @@ func (m secretModel) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func listSecrets(address string, jwtCookie *http.Cookie) tea.Cmd {
-	cmd := NewListSecretsCommand(address, jwtCookie)
+func listSecrets(addr string, jwt *http.Cookie, client *resty.Client) tea.Cmd {
+	cmd := NewListSecretsCommand(addr, jwt, client)
 	return cmd.Execute
 }
 
-func saveSecret(secret vault.Secret, address string, jwtCookie *http.Cookie) tea.Cmd {
-	cmd := newSaveSecretCommand(secret, address, jwtCookie)
+func saveSecret(secret vault.Secret, addr string, jwt *http.Cookie, client *resty.Client) tea.Cmd {
+	cmd := newSaveSecretCommand(secret, addr, jwt, client)
 	return cmd.execute
 }
