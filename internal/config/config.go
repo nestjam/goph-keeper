@@ -15,7 +15,7 @@ const (
 	serverKeyFile  = "server.keyfile"
 	vaultMasterKey = "vault.masterkey"
 
-	defaultServerAddress = "https://localhost:8080"
+	defaultServerAddress = "localhost:8080"
 	defaultCertFile      = "servercert.crt"
 	defaultKeyFile       = "servercert.key"
 )

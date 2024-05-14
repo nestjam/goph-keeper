@@ -1,5 +1,7 @@
 server:
-  address: localhost:8080  
+  #address: localhost:8080
+  #certFile: servercert.crt
+  #keyFile: servercert.key  
 
 postgres:
   dataSourceName: postgres://postgres:postgres@localhost:5432/goph-keeper?sslmode=disable
