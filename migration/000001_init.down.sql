@@ -1,0 +1,9 @@
+BEGIN;
+
+DROP TABLE IF EXISTS users;
+
+DROP TABLE IF EXISTS keys;
+
+DROP TABLE IF EXISTS secrets;
+
+END;
