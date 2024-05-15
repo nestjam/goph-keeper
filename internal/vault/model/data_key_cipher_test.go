@@ -25,8 +25,9 @@ func TestDataKey_Seal(t *testing.T) {
 	t.Run("seal and unseal data", func(t *testing.T) {
 		const text = `Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
 sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
-		sut, err := NewDataKey()
-		sut.ID = uuid.New()
+		key, err := NewDataKey()
+		key.ID = uuid.New()
+		sut := NewDataKeyCipher(key)
 		require.NoError(t, err)
 		want := &Secret{
 			ID:   uuid.New(),
@@ -36,7 +37,7 @@ sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
 		sealed, err := sut.Seal(want)
 
 		require.NoError(t, err)
-		assert.Equal(t, sut.ID, sealed.KeyID)
+		assert.Equal(t, sut.dataKey.ID, sealed.KeyID)
 
 		unsealed, err := sut.Unseal(sealed)
 
@@ -53,7 +54,8 @@ sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
 		const size = 8
 		key, err := utils.GenerateRandom(size)
 		require.NoError(t, err)
-		sut := DataKey{Key: key}
+		dataKey := &DataKey{Key: key}
+		sut := NewDataKeyCipher(dataKey)
 
 		_, err = sut.Seal(want)
 
@@ -70,7 +72,8 @@ func TestDataKey_Unseal(t *testing.T) {
 		const size = 8
 		key, err := utils.GenerateRandom(size)
 		require.NoError(t, err)
-		sut := &DataKey{Key: key}
+		dataKey := &DataKey{Key: key}
+		sut := NewDataKeyCipher(dataKey)
 
 		_, err = sut.Unseal(secret)
 

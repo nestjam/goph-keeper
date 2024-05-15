@@ -35,35 +35,3 @@ func (k *DataKey) Copy() *DataKey {
 		EncryptionsCount:  k.EncryptionsCount,
 	}
 }
-
-func (k *DataKey) Seal(unsealed *Secret) (*Secret, error) {
-	const op = "seal"
-
-	cipher := utils.NewBlockCipher(k.Key)
-	ciphertext, err := cipher.Seal(unsealed.Data)
-	if err != nil {
-		return nil, errors.Wrap(err, op)
-	}
-
-	sealed := unsealed.Copy()
-	sealed.Data = ciphertext
-	sealed.KeyID = k.ID
-
-	return sealed, nil
-}
-
-func (k *DataKey) Unseal(sealed *Secret) (unsealed *Secret, err error) {
-	const op = "unseal"
-
-	cipher := utils.NewBlockCipher(k.Key)
-	plaintext, err := cipher.Unseal(sealed.Data)
-	if err != nil {
-		return nil, errors.Wrap(err, op)
-	}
-
-	unsealed = sealed.Copy()
-	unsealed.KeyID = uuid.Nil
-	unsealed.Data = plaintext
-
-	return unsealed, nil
-}

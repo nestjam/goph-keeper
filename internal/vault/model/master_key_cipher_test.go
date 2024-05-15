@@ -9,10 +9,11 @@ import (
 	"github.com/nestjam/goph-keeper/internal/utils"
 )
 
-func TestMasterKey_Seal(t *testing.T) {
+func TestMasterKeyCipher_Seal(t *testing.T) {
 	t.Run("seal data key", func(t *testing.T) {
 		key, _ := utils.GenerateRandomAES256Key()
-		sut := NewMasterKey(key)
+		masterKey := NewMasterKey(key)
+		sut := NewMasterKeyCipher(masterKey)
 		unsealed, _ := NewDataKey()
 
 		_, err := sut.Seal(unsealed)
@@ -22,7 +23,8 @@ func TestMasterKey_Seal(t *testing.T) {
 	t.Run("seal with invalid key size", func(t *testing.T) {
 		const keySize = 8
 		key, _ := utils.GenerateRandom(keySize)
-		sut := NewMasterKey(key)
+		masterKey := NewMasterKey(key)
+		sut := NewMasterKeyCipher(masterKey)
 		unsealed, _ := NewDataKey()
 
 		_, err := sut.Seal(unsealed)
@@ -34,7 +36,8 @@ func TestMasterKey_Seal(t *testing.T) {
 func TestMasterKey_Unseal(t *testing.T) {
 	t.Run("unseal sealed data key", func(t *testing.T) {
 		key, _ := utils.GenerateRandomAES256Key()
-		sut := NewMasterKey(key)
+		masterKey := NewMasterKey(key)
+		sut := NewMasterKeyCipher(masterKey)
 		original, _ := NewDataKey()
 		sealed, err := sut.Seal(original)
 		require.NoError(t, err)
@@ -46,7 +49,8 @@ func TestMasterKey_Unseal(t *testing.T) {
 	})
 	t.Run("unseal invalid data", func(t *testing.T) {
 		key, _ := utils.GenerateRandomAES256Key()
-		sut := NewMasterKey(key)
+		masterKey := NewMasterKey(key)
+		sut := NewMasterKeyCipher(masterKey)
 		original, _ := NewDataKey()
 
 		_, err := sut.Unseal(original)

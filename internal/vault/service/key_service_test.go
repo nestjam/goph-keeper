@@ -166,13 +166,14 @@ func TestKeyService_Unseal(t *testing.T) {
 	})
 }
 
-func setKey(t *testing.T, ctx context.Context, rk *model.MasterKey, repo vault.DataKeyRepository) *model.DataKey {
+func setKey(t *testing.T, ctx context.Context, k *model.MasterKey, r vault.DataKeyRepository) *model.DataKey {
 	t.Helper()
 
 	key, _ := model.NewDataKey()
-	key, err := rk.Seal(key)
+	cipher := model.NewMasterKeyCipher(k)
+	key, err := cipher.Seal(key)
 	require.NoError(t, err)
-	key, err = repo.RotateKey(ctx, key)
+	key, err = r.RotateKey(ctx, key)
 	require.NoError(t, err)
 
 	return key

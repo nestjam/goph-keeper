@@ -35,7 +35,8 @@ func TestAddSecret(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
 		rootKey := randomMasterKey(t)
-		setInvalidDataKey(t, ctx, rootKey, keyRepo)
+		cipher := model.NewMasterKeyCipher(rootKey)
+		setInvalidDataKey(t, ctx, cipher, keyRepo)
 		secretRepo := inmemory.NewSecretRepository()
 
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
@@ -73,7 +74,8 @@ func TestUpdateSecret(t *testing.T) {
 		ctx := context.Background()
 		keyRepo := inmemory.NewDataKeyRepository()
 		rootKey := randomMasterKey(t)
-		setInvalidDataKey(t, ctx, rootKey, keyRepo)
+		cipher := model.NewMasterKeyCipher(rootKey)
+		setInvalidDataKey(t, ctx, cipher, keyRepo)
 		secretRepo := inmemory.NewSecretRepository()
 
 		sut := NewVaultService(secretRepo, keyRepo, rootKey)
@@ -209,14 +211,14 @@ func TestListSecrets(t *testing.T) {
 	})
 }
 
-func setInvalidDataKey(t *testing.T, ctx context.Context, rootKey *model.MasterKey, keyRepo vault.DataKeyRepository) {
+func setInvalidDataKey(t *testing.T, ctx context.Context, cipher *model.MasterKeyCipher, r vault.DataKeyRepository) {
 	t.Helper()
 
 	const keySize = 8 // should be 32
 	key, _ := utils.GenerateRandom(keySize)
 	dataKey := &model.DataKey{Key: key}
-	dataKey, err := rootKey.Seal(dataKey)
+	dataKey, err := cipher.Seal(dataKey)
 	require.NoError(t, err)
-	_, err = keyRepo.RotateKey(ctx, dataKey)
+	_, err = r.RotateKey(ctx, dataKey)
 	require.NoError(t, err)
 }

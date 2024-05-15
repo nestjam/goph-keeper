@@ -28,7 +28,7 @@ func NewKeyRotationConfig() KeyRotationConfig {
 
 type keyService struct {
 	keyRepo vault.DataKeyRepository
-	rootKey *model.MasterKey
+	cipher  *model.MasterKeyCipher
 	config  KeyRotationConfig
 }
 
@@ -36,7 +36,7 @@ func NewKeyService(keyRepo vault.DataKeyRepository, config KeyRotationConfig, ro
 	return &keyService{
 		keyRepo: keyRepo,
 		config:  config,
-		rootKey: rootKey,
+		cipher:  model.NewMasterKeyCipher(rootKey),
 	}
 }
 
@@ -57,12 +57,13 @@ func (k *keyService) Seal(ctx context.Context, secret *model.Secret) (*model.Sec
 		}
 	}
 
-	key, err = k.rootKey.Unseal(key)
+	key, err = k.cipher.Unseal(key)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
 
-	sealed, err := key.Seal(secret)
+	cipher := model.NewDataKeyCipher(key)
+	sealed, err := cipher.Seal(secret)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
@@ -84,7 +85,7 @@ func (k *keyService) rotateKey(ctx context.Context) (*model.DataKey, error) {
 		return nil, errors.Wrap(err, op)
 	}
 
-	key, err = k.rootKey.Seal(key)
+	key, err = k.cipher.Seal(key)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
@@ -105,12 +106,13 @@ func (k *keyService) Unseal(ctx context.Context, secret *model.Secret) (*model.S
 		return nil, errors.Wrap(err, op)
 	}
 
-	key, err = k.rootKey.Unseal(key)
+	key, err = k.cipher.Unseal(key)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
 
-	unsealed, err := key.Unseal(secret)
+	cipher := model.NewDataKeyCipher(key)
+	unsealed, err := cipher.Unseal(secret)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
